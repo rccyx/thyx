@@ -1,22 +1,50 @@
 import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick.Window 2.15
 import QtQuick.Controls 2.15
 import SddmComponents 2.0 as SDDM
 
 Rectangle {
     id: root
+
     width: Screen.width
     height: Screen.height
-    color: "#0a0a0a"
+    color: "#020707"
 
-    property string backgroundSource: "wallpapers/sd.jpg"
-    property var config: ({})
+    property string backgroundSource: "../../../wl.jpg"
+    property string environmentLabel: "Hyprland"
     property date currentDate: new Date()
+    property real uiScale: Math.max(0.72, Math.min(width / 1920, height / 1080))
+    property color accent: "#13b8b5"
+    property color accentHot: "#1fd7d2"
+    property color textStrong: "#ecffff"
+    property color textSoft: "#bdeeed"
+
+    function login() {
+        if (usernameInput.text.length === 0) {
+            usernameInput.forceActiveFocus()
+            return
+        }
+
+        sddm.login(usernameInput.text, passwordInput.text, 0)
+    }
+
+    function powerOff() {
+        sddm.powerOff()
+    }
+
+    function restart() {
+        sddm.reboot()
+    }
+
+    function sleep() {
+        sddm.suspend()
+    }
 
     Timer {
         interval: 1000
         running: true
         repeat: true
+
         onTriggered: {
             root.currentDate = new Date()
         }
@@ -24,135 +52,335 @@ Rectangle {
 
     Image {
         id: backgroundImage
+
         anchors.fill: parent
-        source: backgroundSource
+        source: root.backgroundSource
         fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        smooth: true
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "#001816"
+        opacity: 0.28
+    }
+
+    Rectangle {
+        anchors.fill: parent
+
+        gradient: Gradient {
+            GradientStop {
+                position: 0.0
+                color: "#78000000"
+            }
+
+            GradientStop {
+                position: 0.34
+                color: "#18000000"
+            }
+
+            GradientStop {
+                position: 0.62
+                color: "#24000000"
+            }
+
+            GradientStop {
+                position: 1.0
+                color: "#8a000000"
+            }
+        }
     }
 
     Rectangle {
         anchors.fill: parent
         color: "#000000"
-        opacity: 0.45
+        opacity: 0.18
     }
 
-    ColumnLayout {
-        anchors.centerIn: parent
-        width: 480
-        spacing: 28
+    Column {
+        id: clockBlock
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: root.height * 0.135
+        spacing: 10 * root.uiScale
 
         Text {
-            text: "OSYX"
-            color: "#ffffff"
-            font.pixelSize: 78
-            font.weight: Font.Bold
-            Layout.alignment: Qt.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Qt.formatDate(root.currentDate, "dddd, MMMM d")
+            color: root.textSoft
+            font.family: "Inter"
+            font.pixelSize: 31 * root.uiScale
+            font.weight: Font.Medium
         }
 
         Text {
-            text: "Sign in"
-            color: "#e0e0e0"
-            font.pixelSize: 22
-            Layout.alignment: Qt.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Qt.formatTime(root.currentDate, "HH:mm")
+            color: root.textStrong
+            font.family: "Inter"
+            font.pixelSize: 112 * root.uiScale
+            font.weight: Font.Black
         }
+    }
 
-        Rectangle {
-            Layout.alignment: Qt.AlignHCenter
-            width: 400
-            height: 54
-            color: "#1f1f2b"
-            radius: 10
-            border.width: 1
-            border.color: usernameInput.activeFocus ? "#60a5fa" : "#ffffff18"
+    Column {
+        id: loginBlock
 
-            TextInput {
-                id: usernameInput
-                anchors.fill: parent
-                anchors.margins: 14
-                color: "#ffffff"
-                font.pixelSize: 17
-                placeholderText: "Username"
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: root.height * 0.46
+        width: 390 * root.uiScale
+        spacing: 18 * root.uiScale
+
+        TextField {
+            id: usernameInput
+
+            width: parent.width
+            height: 38 * root.uiScale
+            color: root.textStrong
+            placeholderText: "Username"
+            placeholderTextColor: Qt.rgba(0.82, 1.0, 1.0, 0.72)
+            selectedTextColor: "#001414"
+            selectionColor: root.accentHot
+            font.family: "Inter"
+            font.pixelSize: 15 * root.uiScale
+            font.weight: Font.DemiBold
+            horizontalAlignment: TextInput.AlignHCenter
+            verticalAlignment: TextInput.AlignVCenter
+            leftPadding: 24 * root.uiScale
+            rightPadding: 24 * root.uiScale
+            selectByMouse: true
+
+            background: Rectangle {
+                radius: height / 2
+                color: usernameInput.activeFocus
+                    ? Qt.rgba(0.05, 0.70, 0.68, 0.28)
+                    : Qt.rgba(0.04, 0.52, 0.50, usernameInput.hovered ? 0.26 : 0.18)
+                border.width: usernameInput.activeFocus ? 1 : 0
+                border.color: Qt.rgba(0.72, 1.0, 1.0, 0.42)
             }
+
+            Keys.onReturnPressed: passwordInput.forceActiveFocus()
+            Keys.onEnterPressed: passwordInput.forceActiveFocus()
         }
 
-        Rectangle {
-            Layout.alignment: Qt.AlignHCenter
-            width: 400
-            height: 54
-            color: "#1f1f2b"
-            radius: 10
-            border.width: 1
-            border.color: passwordInput.activeFocus ? "#60a5fa" : "#ffffff18"
+        TextField {
+            id: passwordInput
 
-            TextInput {
-                id: passwordInput
-                anchors.fill: parent
-                anchors.margins: 14
-                color: "#ffffff"
-                font.pixelSize: 17
-                echoMode: TextInput.Password
-                placeholderText: "Password"
+            width: parent.width
+            height: 38 * root.uiScale
+            color: root.textStrong
+            placeholderText: "Password"
+            placeholderTextColor: Qt.rgba(0.82, 1.0, 1.0, 0.72)
+            selectedTextColor: "#001414"
+            selectionColor: root.accentHot
+            font.family: "Inter"
+            font.pixelSize: 15 * root.uiScale
+            font.weight: Font.DemiBold
+            horizontalAlignment: TextInput.AlignHCenter
+            verticalAlignment: TextInput.AlignVCenter
+            leftPadding: 24 * root.uiScale
+            rightPadding: 24 * root.uiScale
+            echoMode: TextInput.Password
+            passwordCharacter: "•"
+            selectByMouse: true
+
+            background: Rectangle {
+                radius: height / 2
+                color: passwordInput.activeFocus
+                    ? Qt.rgba(0.05, 0.70, 0.68, 0.28)
+                    : Qt.rgba(0.04, 0.52, 0.50, passwordInput.hovered ? 0.26 : 0.18)
+                border.width: passwordInput.activeFocus ? 1 : 0
+                border.color: Qt.rgba(0.72, 1.0, 1.0, 0.42)
             }
+
+            Keys.onReturnPressed: root.login()
+            Keys.onEnterPressed: root.login()
+        }
+
+        Text {
+            id: errorText
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: text.length > 0
+            text: ""
+            color: "#ffd1d1"
+            font.family: "Inter"
+            font.pixelSize: 13 * root.uiScale
+            font.weight: Font.Medium
         }
 
         Rectangle {
-            Layout.alignment: Qt.AlignHCenter
-            width: 400
-            height: 58
-            color: signInArea.pressed ? "#1d4ed8" : signInArea.containsMouse ? "#3b82f6" : "#2563eb"
-            radius: 30
+            id: loginButton
+
+            width: parent.width
+            height: 39 * root.uiScale
+            radius: height / 2
+            color: loginArea.pressed
+                ? "#0d918e"
+                : loginArea.containsMouse ? root.accentHot : root.accent
 
             Text {
-                text: "Sign in"
-                color: "#ffffff"
-                font.pixelSize: 18
-                font.weight: Font.Medium
                 anchors.centerIn: parent
+                text: "Login"
+                color: "#001413"
+                font.family: "Inter"
+                font.pixelSize: 15 * root.uiScale
+                font.weight: Font.Bold
             }
 
             MouseArea {
-                id: signInArea
+                id: loginArea
+
                 anchors.fill: parent
                 hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+
                 onClicked: {
-                    sddm.login(usernameInput.text, passwordInput.text, 0)
+                    root.login()
+                }
+            }
+        }
+    }
+
+    Row {
+        id: powerBlock
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: root.height * 0.79
+        spacing: 70 * root.uiScale
+
+        Column {
+            spacing: 8 * root.uiScale
+            opacity: shutdownArea.containsMouse ? 1.0 : 0.82
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "⏻"
+                color: root.textStrong
+                font.family: "Inter"
+                font.pixelSize: 35 * root.uiScale
+                font.weight: Font.Light
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Shutdown"
+                color: root.textSoft
+                font.family: "Inter"
+                font.pixelSize: 14 * root.uiScale
+                font.weight: Font.Medium
+            }
+
+            MouseArea {
+                id: shutdownArea
+
+                anchors.fill: parent
+                anchors.margins: -14 * root.uiScale
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+
+                onClicked: {
+                    root.powerOff()
                 }
             }
         }
 
-        Row {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 48
+        Column {
+            spacing: 8 * root.uiScale
+            opacity: restartArea.containsMouse ? 1.0 : 0.82
 
             Text {
-                text: "⏻"
-                color: "#aaaaaa"
-                font.pixelSize: 38
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "↻"
+                color: root.textStrong
+                font.family: "Inter"
+                font.pixelSize: 35 * root.uiScale
+                font.weight: Font.Light
             }
+
             Text {
-                text: "↺"
-                color: "#aaaaaa"
-                font.pixelSize: 38
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Restart"
+                color: root.textSoft
+                font.family: "Inter"
+                font.pixelSize: 14 * root.uiScale
+                font.weight: Font.Medium
             }
-            Text {
-                text: "⏾"
-                color: "#aaaaaa"
-                font.pixelSize: 38
+
+            MouseArea {
+                id: restartArea
+
+                anchors.fill: parent
+                anchors.margins: -14 * root.uiScale
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+
+                onClicked: {
+                    root.restart()
+                }
             }
         }
 
-        Text {
-            text: Qt.formatTime(root.currentDate, "HH:mm")
-            color: "#f0f0f0"
-            font.pixelSize: 64
-            font.weight: Font.Light
-            Layout.alignment: Qt.AlignHCenter
-        }
+        Column {
+            spacing: 8 * root.uiScale
+            opacity: sleepArea.containsMouse ? 1.0 : 0.82
 
-        Text {
-            text: Qt.formatDate(root.currentDate, "MMMM d, yyyy")
-            color: "#888888"
-            font.pixelSize: 17
-            Layout.alignment: Qt.AlignHCenter
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "☾"
+                color: root.textStrong
+                font.family: "Inter"
+                font.pixelSize: 35 * root.uiScale
+                font.weight: Font.Light
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Sleep"
+                color: root.textSoft
+                font.family: "Inter"
+                font.pixelSize: 14 * root.uiScale
+                font.weight: Font.Medium
+            }
+
+            MouseArea {
+                id: sleepArea
+
+                anchors.fill: parent
+                anchors.margins: -14 * root.uiScale
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+
+                onClicked: {
+                    root.sleep()
+                }
+            }
         }
+    }
+
+    Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: root.height * 0.93
+        text: "Environment (" + root.environmentLabel + ")"
+        color: root.textSoft
+        opacity: 0.92
+        font.family: "Inter"
+        font.pixelSize: 15 * root.uiScale
+        font.weight: Font.Medium
+    }
+
+    Connections {
+        target: sddm
+
+        function onLoginFailed() {
+            passwordInput.text = ""
+            errorText.text = "Login failed"
+            passwordInput.forceActiveFocus()
+        }
+    }
+
+    Component.onCompleted: {
+        usernameInput.forceActiveFocus()
     }
 }
