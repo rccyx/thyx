@@ -10,7 +10,7 @@ Rectangle {
     height: Screen.height
     color: "#020707"
 
-    property string backgroundSource: "../../../wl.jpg"
+    property string backgroundSource: "wallpapers/sd.jpg"
     property string environmentLabel: "Hyprland"
     property date currentDate: new Date()
     property real uiScale: Math.max(0.72, Math.min(width / 1920, height / 1080))
@@ -250,33 +250,38 @@ Rectangle {
         y: root.height * 0.79
         spacing: 70 * root.uiScale
 
-        Column {
-            spacing: 8 * root.uiScale
+        Item {
+            width: 86 * root.uiScale
+            height: 76 * root.uiScale
             opacity: shutdownArea.containsMouse ? 1.0 : 0.82
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "⏻"
-                color: root.textStrong
-                font.family: "Inter"
-                font.pixelSize: 35 * root.uiScale
-                font.weight: Font.Light
-            }
+            Column {
+                anchors.centerIn: parent
+                spacing: 8 * root.uiScale
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "Shutdown"
-                color: root.textSoft
-                font.family: "Inter"
-                font.pixelSize: 14 * root.uiScale
-                font.weight: Font.Medium
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "⏻"
+                    color: root.textStrong
+                    font.family: "Inter"
+                    font.pixelSize: 35 * root.uiScale
+                    font.weight: Font.Light
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Shutdown"
+                    color: root.textSoft
+                    font.family: "Inter"
+                    font.pixelSize: 14 * root.uiScale
+                    font.weight: Font.Medium
+                }
             }
 
             MouseArea {
                 id: shutdownArea
 
                 anchors.fill: parent
-                anchors.margins: -14 * root.uiScale
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
@@ -286,33 +291,38 @@ Rectangle {
             }
         }
 
-        Column {
-            spacing: 8 * root.uiScale
+        Item {
+            width: 86 * root.uiScale
+            height: 76 * root.uiScale
             opacity: restartArea.containsMouse ? 1.0 : 0.82
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "↻"
-                color: root.textStrong
-                font.family: "Inter"
-                font.pixelSize: 35 * root.uiScale
-                font.weight: Font.Light
-            }
+            Column {
+                anchors.centerIn: parent
+                spacing: 8 * root.uiScale
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "Restart"
-                color: root.textSoft
-                font.family: "Inter"
-                font.pixelSize: 14 * root.uiScale
-                font.weight: Font.Medium
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "↻"
+                    color: root.textStrong
+                    font.family: "Inter"
+                    font.pixelSize: 35 * root.uiScale
+                    font.weight: Font.Light
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Restart"
+                    color: root.textSoft
+                    font.family: "Inter"
+                    font.pixelSize: 14 * root.uiScale
+                    font.weight: Font.Medium
+                }
             }
 
             MouseArea {
                 id: restartArea
 
                 anchors.fill: parent
-                anchors.margins: -14 * root.uiScale
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
@@ -322,33 +332,38 @@ Rectangle {
             }
         }
 
-        Column {
-            spacing: 8 * root.uiScale
+        Item {
+            width: 86 * root.uiScale
+            height: 76 * root.uiScale
             opacity: sleepArea.containsMouse ? 1.0 : 0.82
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "☾"
-                color: root.textStrong
-                font.family: "Inter"
-                font.pixelSize: 35 * root.uiScale
-                font.weight: Font.Light
-            }
+            Column {
+                anchors.centerIn: parent
+                spacing: 8 * root.uiScale
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "Sleep"
-                color: root.textSoft
-                font.family: "Inter"
-                font.pixelSize: 14 * root.uiScale
-                font.weight: Font.Medium
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "☾"
+                    color: root.textStrong
+                    font.family: "Inter"
+                    font.pixelSize: 35 * root.uiScale
+                    font.weight: Font.Light
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Sleep"
+                    color: root.textSoft
+                    font.family: "Inter"
+                    font.pixelSize: 14 * root.uiScale
+                    font.weight: Font.Medium
+                }
             }
 
             MouseArea {
                 id: sleepArea
 
                 anchors.fill: parent
-                anchors.margins: -14 * root.uiScale
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
