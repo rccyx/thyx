@@ -10,7 +10,7 @@ Rectangle {
     height: Screen.height
     color: "#020707"
 
-    property string backgroundSource: "wallpapers/sd.jpg"
+    property string backgroundSource: "../../../wl.jpg"
     property string environmentLabel: "Hyprland"
     property date currentDate: new Date()
     property real uiScale: Math.max(0.72, Math.min(width / 1920, height / 1080))
@@ -251,21 +251,22 @@ Rectangle {
         spacing: 70 * root.uiScale
 
         Item {
-            width: 86 * root.uiScale
-            height: 76 * root.uiScale
+            width: 88 * root.uiScale
+            height: 78 * root.uiScale
             opacity: shutdownArea.containsMouse ? 1.0 : 0.82
 
             Column {
                 anchors.centerIn: parent
-                spacing: 8 * root.uiScale
+                spacing: 10 * root.uiScale
 
-                Text {
+                Image {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "⏻"
-                    color: root.textStrong
-                    font.family: "Inter"
-                    font.pixelSize: 35 * root.uiScale
-                    font.weight: Font.Light
+                    source: "icons/shutdown.svg"
+                    width: 34 * root.uiScale
+                    height: 34 * root.uiScale
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    opacity: 0.96
                 }
 
                 Text {
@@ -292,21 +293,22 @@ Rectangle {
         }
 
         Item {
-            width: 86 * root.uiScale
-            height: 76 * root.uiScale
+            width: 88 * root.uiScale
+            height: 78 * root.uiScale
             opacity: restartArea.containsMouse ? 1.0 : 0.82
 
             Column {
                 anchors.centerIn: parent
-                spacing: 8 * root.uiScale
+                spacing: 10 * root.uiScale
 
-                Text {
+                Image {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "↻"
-                    color: root.textStrong
-                    font.family: "Inter"
-                    font.pixelSize: 35 * root.uiScale
-                    font.weight: Font.Light
+                    source: "icons/restart.svg"
+                    width: 34 * root.uiScale
+                    height: 34 * root.uiScale
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    opacity: 0.96
                 }
 
                 Text {
@@ -333,21 +335,22 @@ Rectangle {
         }
 
         Item {
-            width: 86 * root.uiScale
-            height: 76 * root.uiScale
+            width: 88 * root.uiScale
+            height: 78 * root.uiScale
             opacity: sleepArea.containsMouse ? 1.0 : 0.82
 
             Column {
                 anchors.centerIn: parent
-                spacing: 8 * root.uiScale
+                spacing: 10 * root.uiScale
 
-                Text {
+                Image {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "☾"
-                    color: root.textStrong
-                    font.family: "Inter"
-                    font.pixelSize: 35 * root.uiScale
-                    font.weight: Font.Light
+                    source: "icons/sleep.svg"
+                    width: 34 * root.uiScale
+                    height: 34 * root.uiScale
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    opacity: 0.96
                 }
 
                 Text {
