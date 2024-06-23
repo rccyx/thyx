@@ -12,12 +12,35 @@ Rectangle {
 
     property string backgroundSource: "../../../wl.jpg"
     property string environmentLabel: "Hyprland"
+    property string fontFamily: "Inter"
+
     property date currentDate: new Date()
     property real uiScale: Math.max(0.72, Math.min(width / 1920, height / 1080))
+    property real inputWidth: 390 * uiScale
+    property real inputHeight: 38 * uiScale
+    property real inputPadding: 24 * uiScale
+    property real actionWidth: 88 * uiScale
+    property real actionHeight: 78 * uiScale
+
     property color accent: "#13b8b5"
     property color accentHot: "#1fd7d2"
+    property color buttonText: "#001413"
     property color textStrong: "#ecffff"
     property color textSoft: "#bdeeed"
+    property color textError: "#ffd1d1"
+    property color inputIdle: Qt.rgba(0.04, 0.52, 0.50, 0.18)
+    property color inputHover: Qt.rgba(0.04, 0.52, 0.50, 0.26)
+    property color inputFocus: Qt.rgba(0.05, 0.70, 0.68, 0.28)
+    property color inputBorder: Qt.rgba(0.72, 1.0, 1.0, 0.42)
+    property color placeholder: Qt.rgba(0.82, 1.0, 1.0, 0.72)
+
+    function inputFill(field) {
+        if (field.activeFocus) {
+            return inputFocus
+        }
+
+        return field.hovered ? inputHover : inputIdle
+    }
 
     function login() {
         if (usernameInput.text.length === 0) {
@@ -25,6 +48,7 @@ Rectangle {
             return
         }
 
+        errorText.text = ""
         sddm.login(usernameInput.text, passwordInput.text, 0)
     }
 
@@ -40,6 +64,101 @@ Rectangle {
         sddm.suspend()
     }
 
+    component CredentialField: TextField {
+        id: field
+
+        width: root.inputWidth
+        height: root.inputHeight
+        color: root.textStrong
+        placeholderTextColor: root.placeholder
+        selectedTextColor: root.buttonText
+        selectionColor: root.accentHot
+        horizontalAlignment: TextInput.AlignHCenter
+        verticalAlignment: TextInput.AlignVCenter
+        leftPadding: root.inputPadding
+        rightPadding: root.inputPadding
+        selectByMouse: true
+        hoverEnabled: true
+
+        font.family: root.fontFamily
+        font.pixelSize: 15 * root.uiScale
+        font.weight: Font.DemiBold
+
+        background: Rectangle {
+            radius: height / 2
+            color: root.inputFill(field)
+            border.width: field.activeFocus ? 1 : 0
+            border.color: root.inputBorder
+        }
+    }
+
+    component PowerAction: Item {
+        id: action
+
+        property string iconSource: ""
+        property string label: ""
+
+        signal activated()
+
+        width: root.actionWidth
+        height: root.actionHeight
+        opacity: actionArea.containsMouse ? 1.0 : 0.82
+        scale: actionArea.pressed ? 0.96 : actionArea.containsMouse ? 1.04 : 1.0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 120
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: 120
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 10 * root.uiScale
+
+            Image {
+                anchors.horizontalCenter: parent.horizontalCenter
+                source: action.iconSource
+                width: 34 * root.uiScale
+                height: 34 * root.uiScale
+                sourceSize.width: width
+                sourceSize.height: height
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                opacity: 0.96
+            }
+
+            Text {
+                width: action.width
+                text: action.label
+                color: root.textSoft
+                horizontalAlignment: Text.AlignHCenter
+
+                font.family: root.fontFamily
+                font.pixelSize: 14 * root.uiScale
+                font.weight: Font.Medium
+            }
+        }
+
+        MouseArea {
+            id: actionArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: {
+                action.activated()
+            }
+        }
+    }
+
     Timer {
         interval: 1000
         running: true
@@ -51,8 +170,6 @@ Rectangle {
     }
 
     Image {
-        id: backgroundImage
-
         anchors.fill: parent
         source: root.backgroundSource
         fillMode: Image.PreserveAspectCrop
@@ -103,22 +220,27 @@ Rectangle {
 
         anchors.horizontalCenter: parent.horizontalCenter
         y: root.height * 0.135
+        width: root.width
         spacing: 10 * root.uiScale
 
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
             text: Qt.formatDate(root.currentDate, "dddd, MMMM d")
             color: root.textSoft
-            font.family: "Inter"
+            horizontalAlignment: Text.AlignHCenter
+
+            font.family: root.fontFamily
             font.pixelSize: 31 * root.uiScale
             font.weight: Font.Medium
         }
 
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
             text: Qt.formatTime(root.currentDate, "HH:mm")
             color: root.textStrong
-            font.family: "Inter"
+            horizontalAlignment: Text.AlignHCenter
+
+            font.family: root.fontFamily
             font.pixelSize: 112 * root.uiScale
             font.weight: Font.Black
         }
@@ -129,83 +251,41 @@ Rectangle {
 
         anchors.horizontalCenter: parent.horizontalCenter
         y: root.height * 0.46
-        width: 390 * root.uiScale
+        width: root.inputWidth
         spacing: 18 * root.uiScale
 
-        TextField {
+        CredentialField {
             id: usernameInput
 
-            width: parent.width
-            height: 38 * root.uiScale
-            color: root.textStrong
             placeholderText: "Username"
-            placeholderTextColor: Qt.rgba(0.82, 1.0, 1.0, 0.72)
-            selectedTextColor: "#001414"
-            selectionColor: root.accentHot
-            font.family: "Inter"
-            font.pixelSize: 15 * root.uiScale
-            font.weight: Font.DemiBold
-            horizontalAlignment: TextInput.AlignHCenter
-            verticalAlignment: TextInput.AlignVCenter
-            leftPadding: 24 * root.uiScale
-            rightPadding: 24 * root.uiScale
-            selectByMouse: true
 
-            background: Rectangle {
-                radius: height / 2
-                color: usernameInput.activeFocus
-                    ? Qt.rgba(0.05, 0.70, 0.68, 0.28)
-                    : Qt.rgba(0.04, 0.52, 0.50, usernameInput.hovered ? 0.26 : 0.18)
-                border.width: usernameInput.activeFocus ? 1 : 0
-                border.color: Qt.rgba(0.72, 1.0, 1.0, 0.42)
+            onAccepted: {
+                passwordInput.forceActiveFocus()
             }
-
-            Keys.onReturnPressed: passwordInput.forceActiveFocus()
-            Keys.onEnterPressed: passwordInput.forceActiveFocus()
         }
 
-        TextField {
+        CredentialField {
             id: passwordInput
 
-            width: parent.width
-            height: 38 * root.uiScale
-            color: root.textStrong
             placeholderText: "Password"
-            placeholderTextColor: Qt.rgba(0.82, 1.0, 1.0, 0.72)
-            selectedTextColor: "#001414"
-            selectionColor: root.accentHot
-            font.family: "Inter"
-            font.pixelSize: 15 * root.uiScale
-            font.weight: Font.DemiBold
-            horizontalAlignment: TextInput.AlignHCenter
-            verticalAlignment: TextInput.AlignVCenter
-            leftPadding: 24 * root.uiScale
-            rightPadding: 24 * root.uiScale
             echoMode: TextInput.Password
             passwordCharacter: "•"
-            selectByMouse: true
 
-            background: Rectangle {
-                radius: height / 2
-                color: passwordInput.activeFocus
-                    ? Qt.rgba(0.05, 0.70, 0.68, 0.28)
-                    : Qt.rgba(0.04, 0.52, 0.50, passwordInput.hovered ? 0.26 : 0.18)
-                border.width: passwordInput.activeFocus ? 1 : 0
-                border.color: Qt.rgba(0.72, 1.0, 1.0, 0.42)
+            onAccepted: {
+                root.login()
             }
-
-            Keys.onReturnPressed: root.login()
-            Keys.onEnterPressed: root.login()
         }
 
         Text {
             id: errorText
 
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
             visible: text.length > 0
             text: ""
-            color: "#ffd1d1"
-            font.family: "Inter"
+            color: root.textError
+            horizontalAlignment: Text.AlignHCenter
+
+            font.family: root.fontFamily
             font.pixelSize: 13 * root.uiScale
             font.weight: Font.Medium
         }
@@ -223,8 +303,9 @@ Rectangle {
             Text {
                 anchors.centerIn: parent
                 text: "Login"
-                color: "#001413"
-                font.family: "Inter"
+                color: root.buttonText
+
+                font.family: root.fontFamily
                 font.pixelSize: 15 * root.uiScale
                 font.weight: Font.Bold
             }
@@ -250,129 +331,30 @@ Rectangle {
         y: root.height * 0.79
         spacing: 70 * root.uiScale
 
-        Item {
-            width: 88 * root.uiScale
-            height: 78 * root.uiScale
-            opacity: shutdownArea.containsMouse ? 1.0 : 0.82
+        PowerAction {
+            iconSource: "icons/shutdown.svg"
+            label: "Shutdown"
 
-            Column {
-                anchors.centerIn: parent
-                spacing: 10 * root.uiScale
-
-                Image {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    source: "icons/shutdown.svg"
-                    width: 34 * root.uiScale
-                    height: 34 * root.uiScale
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    opacity: 0.96
-                }
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Shutdown"
-                    color: root.textSoft
-                    font.family: "Inter"
-                    font.pixelSize: 14 * root.uiScale
-                    font.weight: Font.Medium
-                }
-            }
-
-            MouseArea {
-                id: shutdownArea
-
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-
-                onClicked: {
-                    root.powerOff()
-                }
+            onActivated: {
+                root.powerOff()
             }
         }
 
-        Item {
-            width: 88 * root.uiScale
-            height: 78 * root.uiScale
-            opacity: restartArea.containsMouse ? 1.0 : 0.82
+        PowerAction {
+            iconSource: "icons/restart.svg"
+            label: "Restart"
 
-            Column {
-                anchors.centerIn: parent
-                spacing: 10 * root.uiScale
-
-                Image {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    source: "icons/restart.svg"
-                    width: 34 * root.uiScale
-                    height: 34 * root.uiScale
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    opacity: 0.96
-                }
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Restart"
-                    color: root.textSoft
-                    font.family: "Inter"
-                    font.pixelSize: 14 * root.uiScale
-                    font.weight: Font.Medium
-                }
-            }
-
-            MouseArea {
-                id: restartArea
-
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-
-                onClicked: {
-                    root.restart()
-                }
+            onActivated: {
+                root.restart()
             }
         }
 
-        Item {
-            width: 88 * root.uiScale
-            height: 78 * root.uiScale
-            opacity: sleepArea.containsMouse ? 1.0 : 0.82
+        PowerAction {
+            iconSource: "icons/sleep.svg"
+            label: "Sleep"
 
-            Column {
-                anchors.centerIn: parent
-                spacing: 10 * root.uiScale
-
-                Image {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    source: "icons/sleep.svg"
-                    width: 34 * root.uiScale
-                    height: 34 * root.uiScale
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    opacity: 0.96
-                }
-
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Sleep"
-                    color: root.textSoft
-                    font.family: "Inter"
-                    font.pixelSize: 14 * root.uiScale
-                    font.weight: Font.Medium
-                }
-            }
-
-            MouseArea {
-                id: sleepArea
-
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-
-                onClicked: {
-                    root.sleep()
-                }
+            onActivated: {
+                root.sleep()
             }
         }
     }
@@ -383,7 +365,8 @@ Rectangle {
         text: "Environment (" + root.environmentLabel + ")"
         color: root.textSoft
         opacity: 0.92
-        font.family: "Inter"
+
+        font.family: root.fontFamily
         font.pixelSize: 15 * root.uiScale
         font.weight: Font.Medium
     }
