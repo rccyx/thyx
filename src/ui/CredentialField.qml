@@ -6,6 +6,7 @@ TextField {
 
     property var themeData
     property real scaleFactor: 1
+    property int scaledPixelSize: themeData.pixelSize(themeData.layout.inputSize, scaleFactor)
 
     width: themeData.layout.inputWidth * scaleFactor
     height: themeData.layout.inputHeight * scaleFactor
@@ -21,13 +22,13 @@ TextField {
     hoverEnabled: true
 
     font.family: themeData.copy.fontFamily
-    font.pixelSize: themeData.layout.inputSize * scaleFactor
+    font.pixelSize: scaledPixelSize
     font.weight: Font.DemiBold
 
     background: Rectangle {
         radius: height / 2
         color: root.themeData.inputFill(root.activeFocus, root.hovered)
-        border.width: root.activeFocus ? 1 : 0
+        border.width: root.activeFocus ? root.themeData.layout.inputBorderFocusWidth : 0
         border.color: root.themeData.palette.inputBorder
     }
 }

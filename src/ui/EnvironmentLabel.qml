@@ -5,12 +5,13 @@ Text {
 
     property real scaleFactor: 1
     property var themeData
+    property int scaledPixelSize: themeData.pixelSize(themeData.layout.environmentSize, scaleFactor)
 
-    text: "Environment (" + themeData.copy.environmentLabel + ")"
+    text: themeData.copy.environmentText()
     color: themeData.palette.textSoft
-    opacity: 0.92
+    opacity: themeData.palette.environmentOpacity
 
     font.family: themeData.copy.fontFamily
-    font.pixelSize: themeData.layout.environmentSize * scaleFactor
+    font.pixelSize: scaledPixelSize
     font.weight: Font.Medium
 }

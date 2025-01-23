@@ -41,17 +41,19 @@ Item {
             sourceSize.height: height
             fillMode: Image.PreserveAspectFit
             smooth: true
-            opacity: 0.96
+            opacity: root.themeData.palette.actionIconOpacity
         }
 
         Text {
+            property int scaledPixelSize: root.themeData.pixelSize(root.themeData.layout.actionLabelSize, root.scaleFactor)
+
             width: parent.width
             text: root.label
             color: root.themeData.palette.textSoft
             horizontalAlignment: Text.AlignHCenter
 
             font.family: root.themeData.copy.fontFamily
-            font.pixelSize: root.themeData.layout.actionLabelSize * root.scaleFactor
+            font.pixelSize: scaledPixelSize
             font.weight: Font.Medium
         }
     }

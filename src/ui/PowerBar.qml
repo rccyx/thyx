@@ -9,17 +9,17 @@ Row {
         {
             icon: themeData.copy.shutdownIcon,
             label: themeData.copy.shutdownLabel,
-            action: "shutdown"
+            action: themeData.copy.shutdownAction
         },
         {
             icon: themeData.copy.restartIcon,
             label: themeData.copy.restartLabel,
-            action: "restart"
+            action: themeData.copy.restartAction
         },
         {
             icon: themeData.copy.sleepIcon,
             label: themeData.copy.sleepLabel,
-            action: "sleep"
+            action: themeData.copy.sleepAction
         }
     ]
 

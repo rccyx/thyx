@@ -5,6 +5,7 @@ Rectangle {
 
     property var themeData
     property real scaleFactor: 1
+    property int scaledPixelSize: themeData.pixelSize(themeData.layout.loginSize, scaleFactor)
 
     signal activated()
 
@@ -19,7 +20,7 @@ Rectangle {
         color: root.themeData.palette.buttonText
 
         font.family: root.themeData.copy.fontFamily
-        font.pixelSize: root.themeData.layout.loginSize * root.scaleFactor
+        font.pixelSize: root.scaledPixelSize
         font.weight: Font.Bold
     }
 

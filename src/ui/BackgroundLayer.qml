@@ -23,10 +23,10 @@ Item {
         anchors.fill: parent
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: root.themeData.palette.gradientTop }
-            GradientStop { position: 0.34; color: root.themeData.palette.gradientUpper }
-            GradientStop { position: 0.62; color: root.themeData.palette.gradientLower }
-            GradientStop { position: 1.0; color: root.themeData.palette.gradientBottom }
+            GradientStop { position: root.themeData.palette.gradientTopPosition; color: root.themeData.palette.gradientTop }
+            GradientStop { position: root.themeData.palette.gradientUpperPosition; color: root.themeData.palette.gradientUpper }
+            GradientStop { position: root.themeData.palette.gradientLowerPosition; color: root.themeData.palette.gradientLower }
+            GradientStop { position: root.themeData.palette.gradientBottomPosition; color: root.themeData.palette.gradientBottom }
         }
     }
 

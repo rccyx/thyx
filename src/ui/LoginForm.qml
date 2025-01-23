@@ -42,13 +42,15 @@ Column {
         scaleFactor: root.scaleFactor
         placeholderText: root.themeData.copy.passwordPlaceholder
         echoMode: TextInput.Password
-        passwordCharacter: "•"
+        passwordCharacter: root.themeData.copy.passwordCharacter
 
         onAccepted: root.loginRequested(usernameInput.text, passwordInput.text)
     }
 
     Text {
         id: errorText
+
+        property int scaledPixelSize: root.themeData.pixelSize(root.themeData.layout.errorSize, root.scaleFactor)
 
         width: parent.width
         visible: text.length > 0
@@ -57,7 +59,7 @@ Column {
         horizontalAlignment: Text.AlignHCenter
 
         font.family: root.themeData.copy.fontFamily
-        font.pixelSize: root.themeData.layout.errorSize * root.scaleFactor
+        font.pixelSize: scaledPixelSize
         font.weight: Font.Medium
     }
 
