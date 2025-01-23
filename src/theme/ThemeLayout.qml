@@ -1,29 +1,32 @@
 import QtQuick 2.15
 
 QtObject {
-    property real designWidth: 1920
-    property real designHeight: 1080
-    property real minScale: 0.72
-    property real clockY: 0.135
-    property real loginY: 0.46
-    property real powerY: 0.79
-    property real environmentY: 0.93
-    property real clockSpacing: 10
-    property real loginSpacing: 18
-    property real powerSpacing: 70
-    property real powerContentSpacing: 10
-    property real inputWidth: 390
-    property real inputHeight: 38
-    property real inputPadding: 24
-    property real loginHeight: 39
-    property real actionWidth: 88
-    property real actionHeight: 78
-    property real actionIconSize: 34
-    property real dateSize: 31
-    property real timeSize: 112
-    property real inputSize: 15
-    property real loginSize: 15
-    property real errorSize: 13
-    property real actionLabelSize: 14
-    property real environmentSize: 15
+    property QtObject config: ThemeConfig {}
+
+    property real designWidth: config.numberValue("layout.designWidth")
+    property real designHeight: config.numberValue("layout.designHeight")
+    property real minScale: config.numberValue("layout.minScale")
+    property real clockY: config.numberValue("layout.clockY")
+    property real loginY: config.numberValue("layout.loginY")
+    property real powerY: config.numberValue("layout.powerY")
+    property real environmentY: config.numberValue("layout.environmentY")
+    property real clockSpacing: config.numberValue("layout.clockSpacing")
+    property real loginSpacing: config.numberValue("layout.loginSpacing")
+    property real powerSpacing: config.numberValue("layout.powerSpacing")
+    property real powerContentSpacing: config.numberValue("layout.powerContentSpacing")
+    property real inputWidth: config.numberValue("layout.inputWidth")
+    property real inputHeight: config.numberValue("layout.inputHeight")
+    property real inputPadding: config.numberValue("layout.inputPadding")
+    property real inputBorderFocusWidth: config.numberValue("layout.inputBorderFocusWidth")
+    property real loginHeight: config.numberValue("layout.loginHeight")
+    property real actionWidth: config.numberValue("layout.actionWidth")
+    property real actionHeight: config.numberValue("layout.actionHeight")
+    property real actionIconSize: config.numberValue("layout.actionIconSize")
+    property real dateSize: config.numberValue("layout.dateSize")
+    property real timeSize: config.numberValue("layout.timeSize")
+    property real inputSize: config.numberValue("layout.inputSize")
+    property real loginSize: config.numberValue("layout.loginSize")
+    property real errorSize: config.numberValue("layout.errorSize")
+    property real actionLabelSize: config.numberValue("layout.actionLabelSize")
+    property real environmentSize: config.numberValue("layout.environmentSize")
 }

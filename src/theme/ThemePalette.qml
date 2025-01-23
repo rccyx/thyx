@@ -1,25 +1,33 @@
 import QtQuick 2.15
 
 QtObject {
-    property color base: "#020707"
-    property color accent: "#13b8b5"
-    property color accentHot: "#1fd7d2"
-    property color accentPressed: "#0d918e"
-    property color buttonText: "#001413"
-    property color textStrong: "#ecffff"
-    property color textSoft: "#bdeeed"
-    property color textError: "#ffd1d1"
-    property color placeholder: Qt.rgba(0.82, 1.0, 1.0, 0.72)
-    property color inputIdle: Qt.rgba(0.04, 0.52, 0.50, 0.18)
-    property color inputHover: Qt.rgba(0.04, 0.52, 0.50, 0.26)
-    property color inputFocus: Qt.rgba(0.05, 0.70, 0.68, 0.28)
-    property color inputBorder: Qt.rgba(0.72, 1.0, 1.0, 0.42)
-    property color tint: "#001816"
-    property real tintOpacity: 0.28
-    property color shade: "#000000"
-    property real shadeOpacity: 0.18
-    property color gradientTop: Qt.rgba(0.0, 0.0, 0.0, 0.47)
-    property color gradientUpper: Qt.rgba(0.0, 0.0, 0.0, 0.09)
-    property color gradientLower: Qt.rgba(0.0, 0.0, 0.0, 0.14)
-    property color gradientBottom: Qt.rgba(0.0, 0.0, 0.0, 0.54)
+    property QtObject config: ThemeConfig {}
+
+    property color base: config.colorValue("palette.base")
+    property color accent: config.colorValue("palette.accent")
+    property color accentHot: config.colorValue("palette.accentHot")
+    property color accentPressed: config.colorValue("palette.accentPressed")
+    property color buttonText: config.colorValue("palette.buttonText")
+    property color textStrong: config.colorValue("palette.textStrong")
+    property color textSoft: config.colorValue("palette.textSoft")
+    property color textError: config.colorValue("palette.textError")
+    property color placeholder: config.colorValue("palette.placeholder")
+    property color inputIdle: config.colorValue("palette.inputIdle")
+    property color inputHover: config.colorValue("palette.inputHover")
+    property color inputFocus: config.colorValue("palette.inputFocus")
+    property color inputBorder: config.colorValue("palette.inputBorder")
+    property color tint: config.colorValue("palette.tint")
+    property real tintOpacity: config.numberValue("palette.tintOpacity")
+    property color shade: config.colorValue("palette.shade")
+    property real shadeOpacity: config.numberValue("palette.shadeOpacity")
+    property real actionIconOpacity: config.numberValue("palette.actionIconOpacity")
+    property real environmentOpacity: config.numberValue("palette.environmentOpacity")
+    property real gradientTopPosition: config.numberValue("palette.gradientTopPosition")
+    property color gradientTop: config.colorValue("palette.gradientTop")
+    property real gradientUpperPosition: config.numberValue("palette.gradientUpperPosition")
+    property color gradientUpper: config.colorValue("palette.gradientUpper")
+    property real gradientLowerPosition: config.numberValue("palette.gradientLowerPosition")
+    property color gradientLower: config.colorValue("palette.gradientLower")
+    property real gradientBottomPosition: config.numberValue("palette.gradientBottomPosition")
+    property color gradientBottom: config.colorValue("palette.gradientBottom")
 }
