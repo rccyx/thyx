@@ -1,6 +1,7 @@
 import QtQuick 2.15
+import QtQuick.Controls 2.15
 
-Column {
+Item {
     id: root
 
     property real scaleFactor: 1
@@ -9,7 +10,7 @@ Column {
     signal loginRequested(string username, string password)
 
     width: themeData.layout.inputWidth * scaleFactor
-    spacing: themeData.layout.loginSpacing * scaleFactor
+    height: loginButton.y + loginButton.height
 
     function clearError() {
         errorText.text = ""
@@ -28,6 +29,8 @@ Column {
     CredentialField {
         id: usernameInput
 
+        x: 0
+        y: 0
         themeData: root.themeData
         scaleFactor: root.scaleFactor
         placeholderText: root.themeData.copy.usernamePlaceholder
@@ -38,6 +41,8 @@ Column {
     CredentialField {
         id: passwordInput
 
+        x: 0
+        y: usernameInput.y + usernameInput.height + root.themeData.layout.loginSpacing * root.scaleFactor
         themeData: root.themeData
         scaleFactor: root.scaleFactor
         placeholderText: root.themeData.copy.passwordPlaceholder
@@ -52,7 +57,10 @@ Column {
 
         property int scaledPixelSize: root.themeData.pixelSize(root.themeData.layout.errorSize, root.scaleFactor)
 
+        x: 0
+        y: passwordInput.y + passwordInput.height + root.themeData.layout.loginSpacing * root.scaleFactor
         width: parent.width
+        height: visible ? implicitHeight : 0
         visible: text.length > 0
         text: ""
         color: root.themeData.palette.textError
@@ -64,6 +72,10 @@ Column {
     }
 
     LoginButton {
+        id: loginButton
+
+        x: 0
+        y: errorText.y + errorText.height + root.themeData.layout.loginSpacing * root.scaleFactor
         themeData: root.themeData
         scaleFactor: root.scaleFactor
 
