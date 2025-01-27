@@ -2,12 +2,12 @@
 Name=thyx
 Description=thyx
 Author=rccyx
+Website=https://github.com/rccyx/thyx
 License=MIT
 Type=sddm-theme
 Version=1.0
 ConfigFile=theme.conf
-MainScript=Main.qml
+MainScript=src/Main.qml
 Theme-Id=thyx
 Theme-API=2.0
 QtVersion=6
-
