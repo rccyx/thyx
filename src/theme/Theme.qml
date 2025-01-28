@@ -3,11 +3,10 @@ import QtQuick 2.15
 QtObject {
     id: root
 
-    property QtObject config: ThemeConfig {}
-    property QtObject copy: ThemeCopy { config: root.config }
-    property QtObject layout: ThemeLayout { config: root.config }
-    property QtObject motion: ThemeMotion { config: root.config }
-    property QtObject palette: ThemePalette { config: root.config }
+    property QtObject copy: ThemeCopy {}
+    property QtObject layout: ThemeLayout {}
+    property QtObject motion: ThemeMotion {}
+    property QtObject palette: ThemePalette {}
 
     function scaleFor(width, height) {
         return Math.max(layout.minScale, Math.min(width / layout.designWidth, height / layout.designHeight))

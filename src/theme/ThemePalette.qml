@@ -1,33 +1,31 @@
 import QtQuick 2.15
 
 QtObject {
-    property QtObject config: ThemeConfig {}
-
-    property color base: config.colorValue("palette.base")
-    property color accent: config.colorValue("palette.accent")
-    property color accentHot: config.colorValue("palette.accentHot")
-    property color accentPressed: config.colorValue("palette.accentPressed")
-    property color buttonText: config.colorValue("palette.buttonText")
-    property color textStrong: config.colorValue("palette.textStrong")
-    property color textSoft: config.colorValue("palette.textSoft")
-    property color textError: config.colorValue("palette.textError")
-    property color placeholder: config.colorValue("palette.placeholder")
-    property color inputIdle: config.colorValue("palette.inputIdle")
-    property color inputHover: config.colorValue("palette.inputHover")
-    property color inputFocus: config.colorValue("palette.inputFocus")
-    property color inputBorder: config.colorValue("palette.inputBorder")
-    property color tint: config.colorValue("palette.tint")
-    property real tintOpacity: config.numberValue("palette.tintOpacity")
-    property color shade: config.colorValue("palette.shade")
-    property real shadeOpacity: config.numberValue("palette.shadeOpacity")
-    property real actionIconOpacity: config.numberValue("palette.actionIconOpacity")
-    property real environmentOpacity: config.numberValue("palette.environmentOpacity")
-    property real gradientTopPosition: config.numberValue("palette.gradientTopPosition")
-    property color gradientTop: config.colorValue("palette.gradientTop")
-    property real gradientUpperPosition: config.numberValue("palette.gradientUpperPosition")
-    property color gradientUpper: config.colorValue("palette.gradientUpper")
-    property real gradientLowerPosition: config.numberValue("palette.gradientLowerPosition")
-    property color gradientLower: config.colorValue("palette.gradientLower")
-    property real gradientBottomPosition: config.numberValue("palette.gradientBottomPosition")
-    property color gradientBottom: config.colorValue("palette.gradientBottom")
+    property color base: "#020707"
+    property color accent: "#13b8b5"
+    property color accentHot: "#1fd7d2"
+    property color accentPressed: "#0d918e"
+    property color buttonText: "#001413"
+    property color textStrong: "#ecffff"
+    property color textSoft: "#bdeeed"
+    property color textError: "#ffd1d1"
+    property color placeholder: "#b8d1ffff"
+    property color inputIdle: "#2e0a8580"
+    property color inputHover: "#420a8580"
+    property color inputFocus: "#470db3ad"
+    property color inputBorder: "#6bb8ffff"
+    property color tint: "#001816"
+    property real tintOpacity: 0.28
+    property color shade: "#000000"
+    property real shadeOpacity: 0.18
+    property real actionIconOpacity: 0.96
+    property real environmentOpacity: 0.92
+    property real gradientTopPosition: 0.0
+    property color gradientTop: "#78000000"
+    property real gradientUpperPosition: 0.34
+    property color gradientUpper: "#17000000"
+    property real gradientLowerPosition: 0.62
+    property color gradientLower: "#24000000"
+    property real gradientBottomPosition: 1.0
+    property color gradientBottom: "#8a000000"
 }
