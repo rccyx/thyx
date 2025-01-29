@@ -5,41 +5,44 @@ Row {
 
     property real scaleFactor: 1
     property var themeData
-    property var actionModel: [
-        {
-            icon: themeData.copy.shutdownIcon,
-            label: themeData.copy.shutdownLabel,
-            action: themeData.copy.shutdownAction
-        },
-        {
-            icon: themeData.copy.restartIcon,
-            label: themeData.copy.restartLabel,
-            action: themeData.copy.restartAction
-        },
-        {
-            icon: themeData.copy.sleepIcon,
-            label: themeData.copy.sleepLabel,
-            action: themeData.copy.sleepAction
-        }
-    ]
 
     signal actionRequested(string actionName)
 
     spacing: themeData.layout.powerSpacing * scaleFactor
 
-    Repeater {
-        model: root.actionModel
+    PowerAction {
+        themeData: root.themeData
+        scaleFactor: root.scaleFactor
+        iconSource: root.themeData.copy.shutdownIcon
+        label: root.themeData.copy.shutdownLabel
+        actionName: root.themeData.copy.shutdownAction
 
-        PowerAction {
-            themeData: root.themeData
-            scaleFactor: root.scaleFactor
-            iconSource: modelData.icon
-            label: modelData.label
-            actionName: modelData.action
+        onActivated: function(actionName) {
+            root.actionRequested(actionName)
+        }
+    }
 
-            onActivated: function(actionName) {
-                root.actionRequested(actionName)
-            }
+    PowerAction {
+        themeData: root.themeData
+        scaleFactor: root.scaleFactor
+        iconSource: root.themeData.copy.restartIcon
+        label: root.themeData.copy.restartLabel
+        actionName: root.themeData.copy.restartAction
+
+        onActivated: function(actionName) {
+            root.actionRequested(actionName)
+        }
+    }
+
+    PowerAction {
+        themeData: root.themeData
+        scaleFactor: root.scaleFactor
+        iconSource: root.themeData.copy.sleepIcon
+        label: root.themeData.copy.sleepLabel
+        actionName: root.themeData.copy.sleepAction
+
+        onActivated: function(actionName) {
+            root.actionRequested(actionName)
         }
     }
 }
