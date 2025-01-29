@@ -1,7 +1,7 @@
 import QtQuick 2.15
 
 QtObject {
-    property string backgroundSource: "../../../../../wl.jpg"
+    property string backgroundSource: "../../../../wl.jpg"
     property string environmentLabel: "Hyprland"
     property string environmentTemplate: "Environment (%1)"
     property string fontFamily: "Inter"
