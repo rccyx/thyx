@@ -22,16 +22,16 @@ QtObject {
     }
 
     function runPowerAction(actionName) {
-        if (actionName === themeData.copy.shutdownAction) {
+        switch (actionName) {
+        case themeData.copy.shutdownAction:
             greeter.powerOff()
             return
-        }
-
-        if (actionName === themeData.copy.restartAction) {
+        case themeData.copy.restartAction:
             greeter.reboot()
             return
+        case themeData.copy.sleepAction:
+            greeter.suspend()
+            return
         }
-
-        if (actionName === themeData.copy.sleepAction) greeter.suspend()
     }
 }
