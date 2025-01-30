@@ -5,6 +5,7 @@ Item {
     id: root
 
     property real scaleFactor: 1
+    property real gap: themeData.layout.loginSpacing * scaleFactor
     property var themeData
 
     signal loginRequested(string username, string password)
@@ -42,7 +43,7 @@ Item {
         id: passwordInput
 
         x: 0
-        y: usernameInput.y + usernameInput.height + root.themeData.layout.loginSpacing * root.scaleFactor
+        y: usernameInput.y + usernameInput.height + root.gap
         themeData: root.themeData
         scaleFactor: root.scaleFactor
         placeholderText: root.themeData.copy.passwordPlaceholder
@@ -58,7 +59,7 @@ Item {
         property int scaledPixelSize: root.themeData.pixelSize(root.themeData.layout.errorSize, root.scaleFactor)
 
         x: 0
-        y: passwordInput.y + passwordInput.height + root.themeData.layout.loginSpacing * root.scaleFactor
+        y: passwordInput.y + passwordInput.height + root.gap
         width: parent.width
         height: visible ? implicitHeight : 0
         visible: text.length > 0
@@ -75,7 +76,9 @@ Item {
         id: loginButton
 
         x: 0
-        y: errorText.y + errorText.height + root.themeData.layout.loginSpacing * root.scaleFactor
+        y: errorText.visible
+            ? errorText.y + errorText.height + root.gap
+            : passwordInput.y + passwordInput.height + root.gap
         themeData: root.themeData
         scaleFactor: root.scaleFactor
 
