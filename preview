@@ -1,2 +1,12 @@
-QT_QPA_PLATFORM=xcb sddm-greeter-qt6 --test-mode --theme ${PWD}
+#!/usr/bin/env bash
+
+if [ "${XDG_SESSION_TYPE:-}" = "wayland" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then
+    echo "👀 Wayland session detected. Using QT_QPA_PLATFORM=wayland"
+    PLATFORM="wayland"
+else
+    echo "👀 X11 session detected. Using QT_QPA_PLATFORM=xcb"
+    PLATFORM="xcb"
+fi
+
+QT_QPA_PLATFORM="${PLATFORM}" sddm-greeter-qt6 --test-mode --theme "${PWD}"
 
