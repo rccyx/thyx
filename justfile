@@ -1,4 +1,5 @@
 alias fc:= format-check
+alias s:= shell
 
 f:
 	bash -c 'find . -name "*.qml" -exec qmlformat -i {} +'
@@ -9,5 +10,11 @@ f:
 		| xargs -0 qmlformat -i && \
 		git diff --exit-code -- src ui \
 	'
+l:
+	find src ui -name "*.qml" -exec qmllint {} +
+
 @p:
 	bash ./preview
+
+@shell:
+	shellcheck -x install uninstall
