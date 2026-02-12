@@ -1,0 +1,742 @@
+#!/usr/bin/env bash
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
+set -Eeuo pipefail
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+
+THEME_ID="thyx"
+REPO_URL_HTTPS="https://github.com/rccyx/thyx.git"
+REPO_URL_SSH="git@github.com:rccyx/thyx.git"
+
+THEME_DST="/usr/share/sddm/themes/${THEME_ID}"
+FONTS_DST="/usr/local/share/fonts/${THEME_ID}"
+
+SDDM_CONF="/etc/sddm.conf"
+SDDM_CONF_BACK="${SDDM_CONF}.thyx-back"
+SDDM_CONF_D_DIR="/etc/sddm.conf.d"
+THYX_DROPIN="${SDDM_CONF_D_DIR}/zzzzzz-${THEME_ID}.conf"
+
+HOME_DIR="${HOME}"
+CACHE_DIR="${XDG_CACHE_HOME:-${HOME_DIR}/.cache}"
+THYX_CACHE_DIR="${CACHE_DIR}/${THEME_ID}"
+
+AUTO_YES=0
+LOG_FILE=""
+
+TMP_SRC_DIR=""
+TMP_IS_TEMP=0
+
+SUDO=()
+MISSING_DEPS=()
+QML_ROOTS=()
+
+run() { "${SUDO[@]}" "$@"; }
+
+if [ -t 1 ]; then
+  red='\033[0;31m'
+  green='\033[0;32m'
+  yellow='\033[0;33m'
+  blue='\033[0;34m'
+  magenta='\033[0;35m'
+  cyan='\033[0;36m'
+  bold='\033[1m'
+  dim='\033[2m'
+  nc='\033[0m'
+else
+  red=''; green=''; yellow=''; blue=''; magenta=''; cyan=''; bold=''; dim=''; nc=''
+fi
+
+die() { printf '%b\n' "${red}${bold}error:${nc} $*" >&2; exit 1; }
+ok() { printf '%b\n' "${green}${bold}✔${nc} $*"; printf '\n'; }
+warn() { printf '%b\n' "${yellow}${bold}⚠${nc} $*"; printf '\n'; }
+info() { printf '%b\n' "${blue}${bold}i${nc} $*"; printf '\n'; }
+step() { printf '%b\n' "${magenta}${bold}==>${nc} $*"; }
+hr() { printf '%b\n' "${cyan}${dim}------------------------------------------------------------${nc}"; }
+
+is_noninteractive() { [ ! -t 0 ]; }
+
+parse_args() {
+  while [ "${#}" -gt 0 ]; do
+    case "$1" in
+      --yes|-y) AUTO_YES=1 ;;
+      *) die "unknown arg: $1 (only --yes/-y supported)" ;;
+    esac
+    shift
+  done
+}
+
+log_setup() {
+  mkdir -p "${THYX_CACHE_DIR}"
+  LOG_FILE="${THYX_CACHE_DIR}/install-${timestamp}.log"
+  exec > >(tee -a "${LOG_FILE}") 2>&1
+  info "log: ${LOG_FILE}"
+}
+
+on_err() {
+  local code="$?"
+  local line="${BASH_LINENO[0]:-?}"
+  local cmd="${BASH_COMMAND:-?}"
+  printf '\n'
+  warn "failed (exit ${code})"
+  warn "at line: ${line}"
+  warn "cmd: ${cmd}"
+  warn "log: ${LOG_FILE}"
+  exit "${code}"
+}
+
+cleanup() {
+  local code="$?"
+  if [ "${TMP_IS_TEMP}" -eq 1 ] && [ -n "${TMP_SRC_DIR}" ] && [ -d "${TMP_SRC_DIR}" ]; then
+    rm -rf "${TMP_SRC_DIR}" >/dev/null 2>&1 || true
+  fi
+  exit "${code}"
+}
+
+missing_dep() {
+  MISSING_DEPS+=("$1")
+}
+
+require_command() {
+  local cmd="$1"
+  local label="${2:-command: ${cmd}}"
+  command -v "${cmd}" >/dev/null 2>&1 || missing_dep "${label}"
+}
+
+require_one_command() {
+  local label="$1"
+  shift
+
+  local cmd
+  for cmd in "$@"; do
+    if command -v "${cmd}" >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+
+  missing_dep "${label}: $*"
+}
+
+report_missing_deps() {
+  if [ "${#MISSING_DEPS[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  printf '\n'
+  warn "missing dependencies"
+  printf '%s\n' "install these capabilities with your distro package manager, then rerun:"
+  printf '\n'
+
+  local dep
+  for dep in "${MISSING_DEPS[@]}"; do
+    printf '  - %s\n' "${dep}"
+  done
+
+  printf '\n'
+  die "dependency check failed"
+}
+
+check_base_deps() {
+  step "deps"
+
+  require_command awk
+  require_command basename
+  require_command cp
+  require_command date
+  require_command dirname
+  require_command find
+  require_command grep
+  require_command id
+  require_command install
+  require_command mkdir
+  require_command mktemp
+  require_command mv
+  require_command pwd
+  require_command rm
+  require_command sha256sum
+  require_command tee
+
+  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    require_command sudo
+  fi
+
+  report_missing_deps
+  ok "base deps ok"
+}
+
+add_qml_root() {
+  local root="$1"
+  [ -n "${root}" ] || return 0
+  [ -d "${root}" ] || return 0
+
+  local existing
+  for existing in "${QML_ROOTS[@]}"; do
+    [ "${existing}" = "${root}" ] && return 0
+  done
+
+  QML_ROOTS+=("${root}")
+}
+
+collect_qml_roots() {
+  local path entry
+
+  if [ -n "${QML2_IMPORT_PATH:-}" ]; then
+    IFS=':' read -r -a path <<< "${QML2_IMPORT_PATH}"
+    for entry in "${path[@]}"; do
+      add_qml_root "${entry}"
+    done
+  fi
+
+  if command -v qtpaths6 >/dev/null 2>&1; then
+    while IFS= read -r entry; do
+      add_qml_root "${entry}"
+    done < <(qtpaths6 --query QML2_IMPORT_PATH 2>/dev/null | tr ':' '\n')
+  fi
+
+  if command -v qtpaths >/dev/null 2>&1; then
+    while IFS= read -r entry; do
+      add_qml_root "${entry}"
+    done < <(qtpaths --query QML2_IMPORT_PATH 2>/dev/null | tr ':' '\n')
+  fi
+
+  add_qml_root /usr/lib/qt6/qml
+  add_qml_root /usr/lib64/qt6/qml
+  add_qml_root /usr/lib/x86_64-linux-gnu/qt6/qml
+  add_qml_root /usr/lib/aarch64-linux-gnu/qt6/qml
+  add_qml_root /usr/lib/arm-linux-gnueabihf/qt6/qml
+  add_qml_root /usr/share/qt6/qml
+  add_qml_root /usr/lib/qt/qml
+  add_qml_root /usr/lib64/qt/qml
+  add_qml_root /usr/share/qt/qml
+}
+
+qml_import_exists() {
+  local import_name="$1"
+  local rel="${import_name//./\/}"
+  local major="${2:-}"
+  local root
+
+  for root in "${QML_ROOTS[@]}"; do
+    [ -d "${root}/${rel}" ] && return 0
+    [ -f "${root}/${rel}/qmldir" ] && return 0
+
+    if [ -n "${major}" ]; then
+      [ -d "${root}/${rel}.${major}" ] && return 0
+      [ -f "${root}/${rel}.${major}/qmldir" ] && return 0
+    fi
+  done
+
+  return 1
+}
+
+require_qml_import() {
+  local import_name="$1"
+  local major="${2:-}"
+
+  if ! qml_import_exists "${import_name}" "${major}"; then
+    missing_dep "qml import: ${import_name}${major:+ ${major}.x}"
+  fi
+}
+
+source_has_fonts() {
+  local fonts_src="${TMP_SRC_DIR}/fonts"
+  [ -d "${fonts_src}" ] || return 1
+  find -L "${fonts_src}" -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print -quit | grep -q .
+}
+
+check_runtime_deps() {
+  step "runtime deps"
+
+  require_command rsync
+  require_one_command "sddm greeter" sddm-greeter-qt6 sddm-greeter
+
+  if source_has_fonts; then
+    require_command fc-cache "command: fc-cache"
+  fi
+
+  collect_qml_roots
+  require_qml_import QtQuick 2
+  require_qml_import QtQuick.Controls 2
+  require_qml_import QtQuick.Layouts 1
+  require_qml_import QtMultimedia
+  require_qml_import Qt5Compat.GraphicalEffects
+  require_qml_import SddmComponents 2
+
+  report_missing_deps
+  ok "runtime deps ok"
+}
+
+confirm_plan() {
+  if ! is_noninteractive; then
+    if [ "${AUTO_YES}" -eq 1 ]; then
+      ok "auto mode: skipping confirmation (--yes/-y)"
+      return 0
+    fi
+
+    printf '\n'
+    info "this will modify /usr and /etc"
+    info "no packages will be installed; missing deps must already exist"
+    info "type ${bold}y${nc} to proceed"
+    printf "%bproceed?%b " "${cyan}" "${nc}"
+    local ans
+    IFS= read -r ans || true
+    [ "${ans:-}" = "y" ] || die "aborted"
+    return 0
+  fi
+
+  [ "${AUTO_YES}" -eq 1 ] || die "noninteractive stdin: pass --yes"
+  ok "noninteractive: skipping confirmation (--yes)"
+}
+
+sudo_warmup() {
+  if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+    SUDO=()
+    ok "running as root"
+    return 0
+  fi
+
+  SUDO=(sudo)
+
+  step "sudo"
+  info "sudo is required for /usr and /etc"
+
+  if sudo -n true >/dev/null 2>&1; then
+    ok "sudo: non-interactive ok"
+    return 0
+  fi
+
+  if is_noninteractive; then
+    die "noninteractive stdin and not root: run as root, or provide passwordless sudo"
+  fi
+
+  sudo -v || die "sudo auth failed"
+  ok "sudo ok"
+}
+
+meta_get() {
+  local key="$1"
+  local file="$2"
+  awk -F= -v k="$key" '
+    $0 ~ "^[[:space:]]*"k"[[:space:]]*=" {
+      sub("^[[:space:]]*"k"[[:space:]]*=","")
+      gsub(/^[ \t"]+|[ \t"]+$/,"")
+      print
+      exit
+    }
+  ' "${file}" 2>/dev/null || true
+}
+
+validate_tree() {
+  local root="$1"
+  local meta="${root}/metadata.desktop"
+  [ -f "${meta}" ] || die "metadata.desktop missing in ${root}"
+
+  local name theme_id main_script cfg
+  name="$(meta_get Name "${meta}")"
+  theme_id="$(meta_get Theme-Id "${meta}")"
+
+  if [ -n "${theme_id}" ] && [ "${theme_id}" != "${THEME_ID}" ]; then
+    die "not ${THEME_ID}: Theme-Id=${theme_id} in ${meta}"
+  fi
+  if [ -z "${theme_id}" ] && [ -n "${name}" ] && [ "${name}" != "${THEME_ID}" ]; then
+    die "not ${THEME_ID}: Name=${name} in ${meta}"
+  fi
+
+  main_script="$(meta_get MainScript "${meta}")"
+  cfg="$(meta_get ConfigFile "${meta}")"
+  main_script="${main_script:-Main.qml}"
+  cfg="${cfg:-theme.conf}"
+
+  [ -f "${root}/${cfg}" ] || die "ConfigFile missing: ${root}/${cfg}"
+  [ -f "${root}/${main_script}" ] || die "MainScript missing: ${root}/${main_script}"
+}
+
+find_local_source() {
+  local here script_dir git_root c
+
+  here="$(pwd -P)"
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+  for c in "${here}" "${script_dir}" "${script_dir}/.." "${script_dir}/../.."; do
+    if [ -f "${c}/metadata.desktop" ]; then
+      validate_tree "${c}"
+      TMP_SRC_DIR="${c}"
+      TMP_IS_TEMP=0
+      ok "using local source: ${TMP_SRC_DIR}"
+      return 0
+    fi
+  done
+
+  if command -v git >/dev/null 2>&1; then
+    git_root="$(git -C "${script_dir}" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [ -n "${git_root}" ] && [ -f "${git_root}/metadata.desktop" ]; then
+      validate_tree "${git_root}"
+      TMP_SRC_DIR="${git_root}"
+      TMP_IS_TEMP=0
+      ok "using local git source: ${TMP_SRC_DIR}"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+clone_repo_temp() {
+  local url="${REPO_URL_HTTPS}"
+  if [ -n "${THYX_GIT_SSH:-}" ]; then
+    url="${REPO_URL_SSH}"
+  fi
+
+  TMP_SRC_DIR="$(mktemp -d)"
+  TMP_IS_TEMP=1
+
+  ok "cloning into temp dir: ${TMP_SRC_DIR}"
+  git clone --depth 1 "${url}" "${TMP_SRC_DIR}"
+
+  validate_tree "${TMP_SRC_DIR}"
+  ok "source ok"
+}
+
+determine_source() {
+  step "source"
+  if find_local_source; then
+    return 0
+  fi
+
+  require_command git
+  report_missing_deps
+  clone_repo_temp
+}
+
+install_theme_atomic() {
+  step "theme"
+  validate_tree "${TMP_SRC_DIR}"
+
+  local parent stage final backup
+  parent="$(dirname "${THEME_DST}")"
+  stage="${parent}/.${THEME_ID}.stage.${timestamp}"
+  final="${THEME_DST}"
+  backup="${parent}/.${THEME_ID}.bak.${timestamp}"
+
+  info "staging to: ${stage}"
+  run rm -rf -- "${stage}"
+  run mkdir -p -- "${stage}"
+
+  run rsync -a --delete \
+    --exclude '.git/' \
+    "${TMP_SRC_DIR}/" "${stage}/"
+
+  validate_tree "${stage}"
+
+  info "activating: ${final}"
+  if [ -d "${final}" ]; then
+    run rm -rf -- "${backup}" || true
+    run mv -- "${final}" "${backup}" || true
+  fi
+
+  run mv -- "${stage}" "${final}"
+  run rm -rf -- "${backup}" >/dev/null 2>&1 || true
+
+  validate_tree "${final}"
+  ok "theme installed"
+}
+
+sha256() { sha256sum -- "$1" | awk '{print $1}'; }
+
+install_fonts() {
+  step "fonts"
+  local fonts_src="${TMP_SRC_DIR}/fonts"
+
+  if ! source_has_fonts; then
+    info "no fonts/ directory with .ttf/.otf found, skipping"
+    return 0
+  fi
+
+  run mkdir -p -- "${FONTS_DST}"
+  info "syncing fonts to: ${FONTS_DST}"
+
+  local desired_list existing_list
+  desired_list="$(mktemp)"
+  existing_list="$(mktemp)"
+
+  find -L "${fonts_src}" -type f \( -iname '*.otf' -o -iname '*.ttf' \) -printf '%f\n' > "${desired_list}"
+
+  while IFS= read -r -d '' f; do
+    local bn dst src_sha dst_sha
+    bn="$(basename "$f")"
+    dst="${FONTS_DST}/${bn}"
+
+    if [ -f "${dst}" ]; then
+      src_sha="$(sha256 "$f")"
+      dst_sha="$(sha256 "$dst")"
+      if [ "${src_sha}" = "${dst_sha}" ]; then
+        ok "font ok: ${bn}"
+        continue
+      fi
+      warn "font exists but differs (leaving existing): ${bn}"
+      continue
+    fi
+
+    run install -m 0644 -- "$f" "${dst}"
+    ok "installed font: ${bn}"
+  done < <(find -L "${fonts_src}" -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0)
+
+  find "${FONTS_DST}" -maxdepth 1 -type f \( -iname '*.otf' -o -iname '*.ttf' \) -printf '%f\n' > "${existing_list}" || true
+  while IFS= read -r existing; do
+    if ! grep -qxF "${existing}" "${desired_list}"; then
+      run rm -f -- "${FONTS_DST}/${existing}"
+      ok "removed stale font: ${existing}"
+    fi
+  done < "${existing_list}"
+
+  rm -f -- "${desired_list}" "${existing_list}"
+
+  run fc-cache -f >/dev/null 2>&1 || true
+  ok "font cache refreshed"
+}
+
+theme_current_from_file() {
+  local file="${1:?}"
+  [ -f "${file}" ] || return 0
+  awk '
+    BEGIN{in_theme=0}
+    /^\[Theme\]/{in_theme=1; next}
+    /^\[/{in_theme=0}
+    in_theme && /^[[:space:]]*Current[[:space:]]*=/ {
+      split($0,a,"=");
+      gsub(/^[ \t"]+|[ \t"]+$/,"",a[2]);
+      print a[2]; exit
+    }
+  ' "${file}" 2>/dev/null || true
+}
+
+effective_theme_debug() {
+  shopt -s nullglob
+  local cur="" t f
+  for f in "${SDDM_CONF}" "${SDDM_CONF_D_DIR}"/*.conf; do
+    [ -f "${f}" ] || continue
+    t="$(theme_current_from_file "${f}" || true)"
+    if [ -n "${t}" ]; then
+      cur="${t}"
+      printf 'wins so far: %s  <-  %s\n' "${cur}" "${f}"
+    fi
+  done
+  printf '\n'
+  printf 'effective Current=%s\n' "${cur}"
+}
+
+effective_theme() {
+  shopt -s nullglob
+  local cur="" t f
+  for f in "${SDDM_CONF}" "${SDDM_CONF_D_DIR}"/*.conf; do
+    [ -f "${f}" ] || continue
+    t="$(theme_current_from_file "${f}" || true)"
+    [ -n "${t}" ] && cur="${t}"
+  done
+  printf '%s' "${cur}"
+}
+
+purge_thyx_confs() {
+  step "sddm conf"
+  run mkdir -p -- "${SDDM_CONF_D_DIR}"
+
+  shopt -s nullglob
+  local f
+  for f in "${SDDM_CONF_D_DIR}"/*"${THEME_ID}"*.conf "${SDDM_CONF_D_DIR}"/*"${THEME_ID}"*.conf.*.bak; do
+    [ -e "${f}" ] || continue
+    run rm -f -- "${f}" || true
+  done
+
+  for f in "${SDDM_CONF}".[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].bak; do
+    [ -e "${f}" ] || continue
+    run rm -f -- "${f}" || true
+  done
+}
+
+backup_sddm_conf_once() {
+  if [ -f "${SDDM_CONF}" ] && [ ! -e "${SDDM_CONF_BACK}" ]; then
+    run cp -a -- "${SDDM_CONF}" "${SDDM_CONF_BACK}"
+    ok "backed up ${SDDM_CONF} -> ${SDDM_CONF_BACK}"
+  elif [ -e "${SDDM_CONF_BACK}" ]; then
+    ok "backup exists: ${SDDM_CONF_BACK}"
+  else
+    ok "no ${SDDM_CONF} to back up (will create it)"
+  fi
+}
+
+set_theme_current_in_sddm_conf() {
+  local to="${1:?}"
+  local tmp
+  tmp="$(mktemp)"
+
+  if [ -f "${SDDM_CONF}" ]; then
+    awk -v to="${to}" '
+      BEGIN{in_theme=0; seen_theme=0; wrote_current=0}
+      /^\[Theme\][[:space:]]*$/{
+        seen_theme=1; in_theme=1; print; next
+      }
+      /^\[/{
+        if(in_theme==1 && wrote_current==0){
+          print "Current=" to
+          wrote_current=1
+        }
+        in_theme=0; print; next
+      }
+      {
+        if(in_theme==1 && $0 ~ /^[[:space:]]*Current[[:space:]]*=/){
+          print "Current=" to
+          wrote_current=1; next
+        }
+        print
+      }
+      END{
+        if(seen_theme==1 && wrote_current==0){
+          print "Current=" to
+        } else if(seen_theme==0){
+          print ""
+          print "[Theme]"
+          print "Current=" to
+        }
+      }
+    ' "${SDDM_CONF}" > "${tmp}"
+  else
+    printf "[Theme]\nCurrent=%s\n" "${to}" > "${tmp}"
+  fi
+
+  run install -m 0644 -- "${tmp}" "${SDDM_CONF}"
+  rm -f -- "${tmp}"
+  ok "set Current=${to} in ${SDDM_CONF}"
+}
+
+write_theme_dropin_lastwins() {
+  local tmp
+  tmp="$(mktemp)"
+  printf "[Theme]\nCurrent=%s\n" "${THEME_ID}" > "${tmp}"
+  run install -m 0644 -- "${tmp}" "${THYX_DROPIN}"
+  rm -f -- "${tmp}"
+  ok "wrote ${THYX_DROPIN} (Current=${THEME_ID})"
+}
+
+apply_sddm_selection() {
+  purge_thyx_confs
+  backup_sddm_conf_once
+  set_theme_current_in_sddm_conf "${THEME_ID}"
+  write_theme_dropin_lastwins
+
+  local cur
+  cur="$(effective_theme || true)"
+  if [ "${cur}" != "${THEME_ID}" ]; then
+    printf '\n'
+    warn "sddm theme did not apply (effective Current=${cur:-<unset>})"
+    effective_theme_debug
+    die "something later in ${SDDM_CONF_D_DIR} is overriding you; fix the winning file above"
+  fi
+
+  ok "sddm theme applied (effective Current=${THEME_ID})"
+}
+
+enable_sddm() {
+  step "service"
+  if command -v systemctl >/dev/null 2>&1; then
+    info "enabling sddm (does not restart it)"
+    run systemctl enable sddm.service >/dev/null 2>&1 || true
+    run systemctl daemon-reload >/dev/null 2>&1 || true
+    ok "service ok"
+    return 0
+  fi
+
+  info "systemctl not found, skipping service enable"
+  ok "service skipped"
+}
+
+verify() {
+  step "verify"
+  [ -d "${THEME_DST}" ] || die "theme dir missing: ${THEME_DST}"
+  [ -f "${THEME_DST}/metadata.desktop" ] || die "metadata.desktop missing in ${THEME_DST}"
+  [ -f "${THYX_DROPIN}" ] || die "drop-in missing: ${THYX_DROPIN}"
+
+  grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*'"${THEME_ID}"'[[:space:]]*$' "${THYX_DROPIN}" \
+    || die "drop-in does not set Current=${THEME_ID}"
+
+  grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*'"${THEME_ID}"'[[:space:]]*$' "${SDDM_CONF}" \
+    || warn "${SDDM_CONF} does not visibly contain Current=${THEME_ID} (it should, but continuing)"
+
+  local cur
+  cur="$(effective_theme || true)"
+  [ "${cur}" = "${THEME_ID}" ] || die "effective Current=${cur:-<unset>} (expected ${THEME_ID})"
+
+  ok "install verified"
+
+  printf '\n'
+  hr
+  printf '%b\n' "${bold}SDDM theme selection:${nc}"
+  printf '  %s\n' "${SDDM_CONF}"
+  printf '  %s\n' "${THYX_DROPIN}"
+  hr
+
+  local greeter
+  greeter="$(command -v sddm-greeter-qt6 || command -v sddm-greeter || true)"
+
+  printf '\n'
+  printf '%b\n' "${bold}Safe test (does NOT log you out):${nc}"
+  printf '  QT_QPA_PLATFORM=xcb %s --test-mode --theme %s\n' "${greeter}" "${THEME_DST}"
+  hr
+
+  printf '\n'
+  printf '%s\n' "when you're ready (this logs you out):"
+  printf '%s\n' "  sudo systemctl restart sddm"
+  hr
+}
+
+print_plan() {
+  step "plan"
+  hr
+  printf '%b\n' "${bold}THYX installer${nc}"
+  printf '\n'
+  printf 'theme id:       %s\n' "${THEME_ID}"
+  if [ -n "${TMP_SRC_DIR}" ] && [ "${TMP_IS_TEMP}" -eq 0 ]; then
+    printf 'source:         %s\n' "${TMP_SRC_DIR} (local)"
+  else
+    printf 'source:         %s\n' "<temp git clone>"
+  fi
+  printf 'theme dst:      %s\n' "${THEME_DST}"
+  printf 'fonts dst:      %s\n' "${FONTS_DST}"
+  printf 'sddm conf:      %s\n' "${SDDM_CONF}"
+  printf 'sddm conf back: %s\n' "${SDDM_CONF_BACK}"
+  printf 'sddm drop-in:   %s\n' "${THYX_DROPIN}"
+  printf 'restart sddm:   %s\n' "no (default)"
+  hr
+  printf '%s\n' "will do:"
+  printf '%s\n' "  - verify installed commands and qml imports"
+  printf '%s\n' "  - use local repo if detected, else temp clone"
+  printf '%s\n' "  - stage -> atomic install into ${THEME_DST}"
+  printf '%s\n' "  - install fonts (if present) into ${FONTS_DST}"
+  printf '%s\n' "  - apply theme via ${SDDM_CONF} + last-wins drop-in"
+  printf '%s\n' "  - enable sddm if systemctl exists (no restart)"
+  hr
+}
+
+main() {
+  trap on_err ERR
+  trap cleanup EXIT
+
+  parse_args "$@"
+  log_setup
+  check_base_deps
+  determine_source
+  check_runtime_deps
+  print_plan
+  confirm_plan
+  sudo_warmup
+
+  install_theme_atomic
+  install_fonts
+  apply_sddm_selection
+  enable_sddm
+  verify
+
+  step "done"
+  ok "installed ${THEME_ID}"
+  ok "log: ${LOG_FILE}"
+}
+
+main "$@"
