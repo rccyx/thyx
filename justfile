@@ -14,7 +14,14 @@ l:
 	find src ui -name "*.qml" -exec qmllint {} +
 
 @p:
-	bash ./preview
+	bash ./scripts/preview
+
+@i:
+	export THYX_GIT_SSH=1
+	bash ./install
+
+@u:
+	bash ./scripts/uninstall
 
 @shell:
-	shellcheck -x install uninstall
+	shellcheck -x ./scripts/install ./scripts/uninstall
