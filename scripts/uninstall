@@ -2,521 +2,103 @@
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 set -Eeuo pipefail
 
-timestamp="$(date +%Y%m%d-%H%M%S)"
-
-THEME_ID="thyx"
-
-THEME_DST="/usr/share/sddm/themes/${THEME_ID}"
-FONTS_DST="/usr/local/share/fonts/${THEME_ID}"
-
-SDDM_CONF="/etc/sddm.conf"
-SDDM_CONF_BACK="${SDDM_CONF}.thyx-back"
-SDDM_CONF_D_DIR="/etc/sddm.conf.d"
-
-HOME_DIR="${HOME}"
-CACHE_DIR="${XDG_CACHE_HOME:-${HOME_DIR}/.cache}"
-THYX_CACHE_DIR="${CACHE_DIR}/${THEME_ID}"
-
-AUTO_YES=0
-LOG_FILE=""
-
-SUDO=()
-MISSING_DEPS=()
-
-run() { "${SUDO[@]}" "$@"; }
-
-if [ -t 1 ]; then
-  red='\033[0;31m'
-  green='\033[0;32m'
-  yellow='\033[0;33m'
-  blue='\033[0;34m'
-  magenta='\033[0;35m'
-  cyan='\033[0;36m'
-  bold='\033[1m'
-  dim='\033[2m'
-  nc='\033[0m'
-else
-  red=''; green=''; yellow=''; blue=''; magenta=''; cyan=''; bold=''; dim=''; nc=''
-fi
-
-die() { printf '%b\n' "${red}${bold}error:${nc} $*" >&2; exit 1; }
-ok() { printf '%b\n' "${green}${bold}✔${nc} $*"; printf '\n'; }
-warn() { printf '%b\n' "${yellow}${bold}⚠${nc} $*"; printf '\n'; }
-info() { printf '%b\n' "${blue}${bold}i${nc} $*"; printf '\n'; }
-step() { printf '%b\n' "${magenta}${bold}==>${nc} $*"; }
-hr() { printf '%b\n' "${cyan}${dim}------------------------------------------------------------${nc}"; }
-
-is_noninteractive() { [ ! -t 0 ]; }
-
-missing_dep() {
-  MISSING_DEPS+=("$1")
-}
-
-require_command() {
-  local cmd="$1"
-  local label="${2:-command: ${cmd}}"
-  command -v "${cmd}" >/dev/null 2>&1 || missing_dep "${label}"
-}
-
-report_missing_deps() {
-  if [ "${#MISSING_DEPS[@]}" -eq 0 ]; then
-    return 0
-  fi
-
-  printf '\n'
-  warn "missing dependencies"
-  printf '%s\n' "install these capabilities with your distro package manager, then rerun:"
-  printf '\n'
-
-  local dep
-  for dep in "${MISSING_DEPS[@]}"; do
-    printf '  - %s\n' "${dep}"
-  done
-
-  printf '\n'
-  die "dependency check failed"
-}
-
-check_deps() {
-  step "deps"
-
-  require_command awk
-  require_command basename
-  require_command cp
-  require_command date
-  require_command find
-  require_command grep
-  require_command id
-  require_command install
-  require_command mkdir
-  require_command mktemp
-  require_command rm
-  require_command tee
-
-  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-    require_command sudo
-  fi
-
-  if [ -d "${FONTS_DST}" ]; then
-    require_command fc-cache "command: fc-cache"
-  fi
-
-  report_missing_deps
-  ok "deps ok"
-}
-
-parse_args() {
-  while [ "${#}" -gt 0 ]; do
-    case "$1" in
-      --yes|-y) AUTO_YES=1 ;;
-      *) die "unknown arg: $1 (only --yes/-y supported)" ;;
-    esac
-    shift
-  done
-}
-
-log_setup() {
-  mkdir -p "${THYX_CACHE_DIR}"
-  LOG_FILE="${THYX_CACHE_DIR}/uninstall-${timestamp}.log"
-  exec > >(tee -a "${LOG_FILE}") 2>&1
-  info "log: ${LOG_FILE}"
-}
-
-on_err() {
-  local code="$?"
-  local line="${BASH_LINENO[0]:-?}"
-  local cmd="${BASH_COMMAND:-?}"
-  printf '\n'
-  warn "failed (exit ${code})"
-  warn "at line: ${line}"
-  warn "cmd: ${cmd}"
-  warn "log: ${LOG_FILE}"
-  exit "${code}"
-}
-
-confirm_plan() {
-  if is_noninteractive; then
-    [ "${AUTO_YES}" -eq 1 ] || die "noninteractive stdin: pass --yes"
-    ok "noninteractive: skipping confirmation (--yes)"
-    return 0
-  fi
-
-  if [ "${AUTO_YES}" -eq 1 ]; then
-    ok "auto mode: skipping confirmation (--yes/-y)"
-    return 0
-  fi
-
-  printf '\n'
-  info "this will remove thyx files from /usr and clean thyx sddm config"
-  info "type ${bold}y${nc} to uninstall"
-  printf "%buninstall now?%b " "${cyan}" "${nc}"
-
-  local ans
-  IFS= read -r ans || true
-  [ "${ans:-}" = "y" ] || die "aborted"
-}
-
-sudo_warmup() {
-  if [ "${EUID:-$(id -u)}" -eq 0 ]; then
-    SUDO=()
-    ok "running as root"
-    return 0
-  fi
-
-  SUDO=(sudo)
-
-  step "sudo"
-  info "sudo is required for /usr and /etc changes"
-
-  if sudo -n true >/dev/null 2>&1; then
-    ok "sudo: non-interactive ok"
-    return 0
-  fi
-
-  if is_noninteractive; then
-    die "noninteractive stdin and not root: run as root, or provide passwordless sudo"
-  fi
-
-  sudo -v || die "sudo auth failed"
-  ok "sudo ok"
-}
-
-theme_dir_exists() {
-  local name="${1:?}"
-  local dir="/usr/share/sddm/themes/${name}"
-
-  [ -d "${dir}" ] || return 1
-  [ -f "${dir}/metadata.desktop" ] && return 0
-  [ -f "${dir}/Main.qml" ] && return 0
-
-  return 1
-}
-
-pick_fallback_theme() {
-  local preferred=(breeze breeze-dark breeze-light elarun maldives maya debian)
-  local t
-
-  for t in "${preferred[@]}"; do
-    if [ "${t}" != "${THEME_ID}" ] && theme_dir_exists "${t}"; then
-      printf '%s\n' "${t}"
-      return 0
-    fi
-  done
-
-  return 1
-}
-
-pick_any_installed_theme() {
-  shopt -s nullglob
-  local d t
-
-  for d in /usr/share/sddm/themes/*; do
-    [ -d "${d}" ] || continue
-    t="$(basename "${d}")"
-
-    [ "${t}" = "${THEME_ID}" ] && continue
-
-    if theme_dir_exists "${t}"; then
-      printf '%s\n' "${t}"
-      return 0
-    fi
-  done
-
-  return 1
-}
-
-theme_current_from_file() {
-  local file="${1:?}"
-  [ -f "${file}" ] || return 0
-
-  awk '
-    BEGIN{in_theme=0}
-    /^\[Theme\]/{in_theme=1; next}
-    /^\[/{in_theme=0}
-    in_theme && /^[[:space:]]*Current[[:space:]]*=/ {
-      split($0,a,"=");
-      gsub(/^[ \t"]+|[ \t"]+$/,"",a[2]);
-      print a[2]; exit
-    }
-  ' "${file}" 2>/dev/null || true
-}
-
-effective_theme_debug() {
-  shopt -s nullglob
-  local cur="" t f
-
-  for f in "${SDDM_CONF}" "${SDDM_CONF_D_DIR}"/*.conf; do
-    [ -f "${f}" ] || continue
-    t="$(theme_current_from_file "${f}" || true)"
-    if [ -n "${t}" ]; then
-      cur="${t}"
-      printf 'wins so far: %s  <-  %s\n' "${cur}" "${f}"
-    fi
-  done
-
-  printf '\n'
-  printf 'effective Current=%s\n' "${cur}"
-}
-
-effective_theme() {
-  shopt -s nullglob
-  local cur="" t f
-
-  for f in "${SDDM_CONF}" "${SDDM_CONF_D_DIR}"/*.conf; do
-    [ -f "${f}" ] || continue
-    t="$(theme_current_from_file "${f}" || true)"
-    [ -n "${t}" ] && cur="${t}"
-  done
-
-  printf '%s' "${cur}"
-}
-
-remove_current_if_equals() {
-  local bad="${1:?}"
-  [ -f "${SDDM_CONF}" ] || return 0
-
-  local cur
-  cur="$(theme_current_from_file "${SDDM_CONF}" || true)"
-  [ "${cur}" = "${bad}" ] || return 0
-
-  local tmp
-  tmp="$(mktemp)"
-
-  awk -v bad="${bad}" '
-    BEGIN{in_theme=0}
-    /^\[Theme\][[:space:]]*$/ {in_theme=1; print; next}
-    /^\[/ {in_theme=0; print; next}
-    {
-      if(in_theme==1 && $0 ~ /^[[:space:]]*Current[[:space:]]*=/){
-        split($0,a,"=");
-        v=a[2];
-        gsub(/^[ \t"]+|[ \t"]+$/,"",v);
-        if(v==bad){ next }
-      }
-      print
-    }
-  ' "${SDDM_CONF}" > "${tmp}"
-
-  run install -m 0644 -- "${tmp}" "${SDDM_CONF}"
-  rm -f -- "${tmp}"
-  ok "removed Current=${bad} from ${SDDM_CONF}"
-}
-
-set_theme_current_in_sddm_conf_no_backup() {
-  local to="${1:?}"
-  local tmp
-  tmp="$(mktemp)"
-
-  if [ -f "${SDDM_CONF}" ]; then
-    awk -v to="${to}" '
-      BEGIN{in_theme=0; seen_theme=0; wrote_current=0}
-      /^\[Theme\][[:space:]]*$/{
-        seen_theme=1; in_theme=1; print; next
-      }
-      /^\[/{
-        if(in_theme==1 && wrote_current==0){
-          print "Current=" to
-          wrote_current=1
-        }
-        in_theme=0; print; next
-      }
-      {
-        if(in_theme==1 && $0 ~ /^[[:space:]]*Current[[:space:]]*=/){
-          print "Current=" to
-          wrote_current=1; next
-        }
-        print
-      }
-      END{
-        if(seen_theme==1 && wrote_current==0){
-          print "Current=" to
-        } else if(seen_theme==0){
-          print ""
-          print "[Theme]"
-          print "Current=" to
-        }
-      }
-    ' "${SDDM_CONF}" > "${tmp}"
-  else
-    printf "[Theme]\nCurrent=%s\n" "${to}" > "${tmp}"
-  fi
-
-  run install -m 0644 -- "${tmp}" "${SDDM_CONF}"
-  rm -f -- "${tmp}"
-  ok "set Current=${to} in ${SDDM_CONF}"
-}
-
-remove_thyx_dropins_and_legacy_backups() {
-  step "sddm conf"
-
-  shopt -s nullglob
-  local f
-
-  for f in "${SDDM_CONF_D_DIR}"/*"${THEME_ID}"*.conf "${SDDM_CONF_D_DIR}"/*"${THEME_ID}"*.conf.*.bak; do
-    [ -e "${f}" ] || continue
-    run rm -f -- "${f}" || true
-  done
-
-  for f in "${SDDM_CONF}".[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].bak; do
-    [ -e "${f}" ] || continue
-    run rm -f -- "${f}" || true
-  done
-
-  ok "removed thyx drop-ins + legacy timestamp backups"
-}
-
-restore_or_revert_sddm_conf() {
-  step "sddm conf restore"
-
-  if [ -e "${SDDM_CONF_BACK}" ]; then
-    if [ -f "${SDDM_CONF_BACK}" ]; then
-      run install -m 0644 -- "${SDDM_CONF_BACK}" "${SDDM_CONF}"
-      run rm -f -- "${SDDM_CONF_BACK}"
-      ok "restored ${SDDM_CONF} from ${SDDM_CONF_BACK}"
-    else
-      run rm -f -- "${SDDM_CONF_BACK}" || true
-      ok "removed ${SDDM_CONF_BACK}"
-    fi
-    return 0
-  fi
-
-  if [ -f "${SDDM_CONF}" ]; then
-    local fb
-    fb="$(pick_fallback_theme || pick_any_installed_theme || true)"
-
-    if [ -n "${fb}" ]; then
-      set_theme_current_in_sddm_conf_no_backup "${fb}"
-      ok "fallback applied (no backup): ${fb}"
-    else
-      remove_current_if_equals "${THEME_ID}"
-      ok "no backup and no fallback theme found; cleared Current=${THEME_ID} when present"
-    fi
-    return 0
-  fi
-
-  ok "no ${SDDM_CONF} and no backup; nothing to restore"
-}
-
-remove_theme_files() {
-  step "remove theme"
-
-  if [ -d "${THEME_DST}" ]; then
-    run rm -rf -- "${THEME_DST}"
-    ok "removed ${THEME_DST}"
-  else
-    ok "theme directory not found: ${THEME_DST} (skipping)"
-  fi
-
-  shopt -s nullglob
-  local f
-
-  for f in "/usr/share/sddm/themes/.${THEME_ID}.bak."* "/usr/share/sddm/themes/.${THEME_ID}.stage."*; do
-    [ -e "${f}" ] || continue
-    run rm -rf -- "${f}" || true
-  done
-}
-
-remove_fonts() {
-  step "remove fonts"
-
-  if [ -d "${FONTS_DST}" ]; then
-    run rm -rf -- "${FONTS_DST}"
-    ok "removed ${FONTS_DST}"
-
-    run fc-cache -f >/dev/null 2>&1
-    ok "font cache refreshed"
-    return 0
-  fi
-
-  ok "fonts directory not found: ${FONTS_DST} (skipping)"
-}
-
-print_plan() {
-  step "plan"
-  hr
-  printf '%b\n' "${bold}THYX uninstaller${nc}"
-  hr
-  printf 'theme id:       %s\n' "${THEME_ID}"
-  printf 'theme dst:      %s\n' "${THEME_DST}"
-  printf 'fonts dst:      %s\n' "${FONTS_DST}"
-  printf 'sddm conf:      %s\n' "${SDDM_CONF}"
-  printf 'sddm conf back: %s\n' "${SDDM_CONF_BACK}"
-  printf 'sddm conf.d:    %s\n' "${SDDM_CONF_D_DIR}"
-  hr
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+# shellcheck disable=SC1091
+source "${script_dir}/lib/_constants.sh"
+# shellcheck disable=SC1091
+source "${script_dir}/lib/_common.sh"
+# shellcheck disable=SC1091
+source "${script_dir}/lib/_repo.sh"
+# shellcheck disable=SC1091
+source "${script_dir}/lib/_theme.sh"
+# shellcheck disable=SC1091
+source "${script_dir}/lib/_deps.sh"
+# shellcheck disable=SC1091
+source "${script_dir}/lib/_sddm.sh"
+
+# shellcheck disable=SC2034
+THYX_LOG_PREFIX="thyx uninstall"
+THYX_REPO_DIR="$(_thyx_find_repo "${script_dir}")"
+
+_thyx_print_uninstall_plan() {
+  _thyx_step "plan"
+  _thyx_hr
+  printf '%b\n' "${THYX_BOLD}thyx uninstaller${THYX_NC}"
+  _thyx_hr
+  printf 'repo:          %s\n' "${THYX_REPO_DIR}"
+  printf 'theme id:      %s\n' "${THYX_THEME_ID}"
+  printf 'theme dst:     %s\n' "${THYX_THEME_DST}"
+  printf 'fonts dst:     %s\n' "${THYX_FONTS_DST}"
+  printf 'sddm drop-in:  %s\n' "${THYX_DROPIN}"
+  _thyx_hr
   printf '%s\n' "will do:"
-  printf '%s\n' "  - verify required shell commands"
-  printf '%s\n' "  - remove thyx drop-ins + legacy timestamp .bak piles"
-  printf '%s\n' "  - restore ${SDDM_CONF} from ${SDDM_CONF_BACK} when present"
-  printf '%s\n' "  - otherwise pick a safe fallback theme, then any installed theme"
-  printf '%s\n' "  - if none exist, remove Current=${THEME_ID} from ${SDDM_CONF}"
-  printf '%s\n' "  - remove ${THEME_DST}"
-  printf '%s\n' "  - remove ${FONTS_DST} when present"
-  hr
+  printf '%s\n' "  - remove owned thyx sddm selection files"
+  printf '%s\n' "  - restore legacy sddm.conf backup when present"
+  printf '%s\n' "  - otherwise move Current=thyx to a fallback when needed"
+  printf '%s\n' "  - remove installed theme files"
+  printf '%s\n' "  - remove installed fonts"
+  _thyx_hr
 }
 
-verify_uninstall() {
-  step "verify"
+_thyx_verify_uninstall() {
+  local current
+  local leftover=0
+  local path
 
-  if [ -d "${THEME_DST}" ]; then
-    warn "theme dir still exists: ${THEME_DST}"
-  else
-    ok "theme dir removed"
-  fi
+  _thyx_step "verify"
 
-  if [ -d "${FONTS_DST}" ]; then
-    warn "fonts dir still exists: ${FONTS_DST}"
-  else
-    ok "fonts dir removed"
-  fi
+  [ ! -d "${THYX_THEME_DST}" ] || _thyx_warn "theme dir still exists: ${THYX_THEME_DST}"
+  [ ! -d "${THYX_FONTS_DST}" ] || _thyx_warn "fonts dir still exists: ${THYX_FONTS_DST}"
 
   shopt -s nullglob
-  local left=0 f
-
-  for f in "${SDDM_CONF_D_DIR}"/*"${THEME_ID}"*.conf "${SDDM_CONF_D_DIR}"/*"${THEME_ID}"*.conf.*.bak; do
-    [ -e "${f}" ] || continue
-    left=1
-    warn "leftover: ${f}"
+  for path in "${THYX_SDDM_CONF_D_DIR}"/*"${THYX_THEME_ID}"*.conf "${THYX_SDDM_CONF_D_DIR}"/*"${THYX_THEME_ID}"*.conf.*.bak; do
+    leftover=1
+    _thyx_warn "leftover: ${path}"
   done
+  shopt -u nullglob
 
-  [ "${left}" -eq 0 ] && ok "no thyx drop-ins remain"
+  [ "${leftover}" -eq 0 ] && _thyx_ok "no thyx drop-ins remain"
 
-  local cur
-  cur="$(effective_theme || true)"
-
-  if [ "${cur}" = "${THEME_ID}" ]; then
-    warn "effective SDDM theme still selects ${THEME_ID}"
-    effective_theme_debug
-  else
-    ok "effective SDDM theme no longer selects ${THEME_ID}"
+  current="$(_thyx_effective_theme)"
+  if [ "${current}" = "${THYX_THEME_ID}" ]; then
+    _thyx_effective_theme_debug
+    _thyx_warn "effective SDDM theme still selects ${THYX_THEME_ID}"
+    return 0
   fi
 
+  _thyx_ok "effective SDDM theme no longer selects ${THYX_THEME_ID}"
+}
+
+_thyx_print_uninstall_hints() {
   printf '\n'
-  hr
-  printf '%s\n' "when you're ready (this logs you out):"
+  _thyx_hr
+  printf '%s\n' "when you're ready, restart sddm from a tty:"
   printf '%s\n' "  sudo systemctl restart sddm"
-  hr
+  _thyx_hr
 }
 
 main() {
-  trap on_err ERR
+  trap _thyx_on_err ERR
 
-  parse_args "$@"
-  log_setup
-  check_deps
+  _thyx_parse_args "$@"
+  _thyx_setup_log
+  _thyx_validate_repo_tree "${THYX_REPO_DIR}"
+  _thyx_check_uninstall_deps "${script_dir}"
 
-  print_plan
-  confirm_plan
-  sudo_warmup
+  _thyx_print_uninstall_plan
+  _thyx_confirm "proceed? type y to uninstall"
+  _thyx_sudo_warmup
 
-  remove_thyx_dropins_and_legacy_backups
-  restore_or_revert_sddm_conf
-  remove_theme_files
-  remove_fonts
-  verify_uninstall
+  _thyx_remove_sddm_selection
+  _thyx_restore_legacy_sddm_conf
+  _thyx_remove_theme_files
+  _thyx_remove_fonts
+  _thyx_verify_uninstall
+  _thyx_print_uninstall_hints
 
-  step "done"
-  ok "uninstall finished"
-  ok "log: ${LOG_FILE}"
+  _thyx_step "done"
+  _thyx_ok "uninstall finished"
 }
 
 main "$@"

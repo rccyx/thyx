@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+
+THYX_MISSING_DEPS=()
+THYX_QML_ROOTS=()
+
+_thyx_find_one_command() {
+  local cmd
+
+  for cmd in "$@"; do
+    if command -v "${cmd}" >/dev/null 2>&1; then
+      printf '%s\n' "${cmd}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+_thyx_require_command() {
+  local cmd="${1:?}"
+
+  command -v "${cmd}" >/dev/null 2>&1 || THYX_MISSING_DEPS+=("command: ${cmd}")
+}
+
+_thyx_require_one_command() {
+  local label="${1:?}"
+  shift
+
+  _thyx_find_one_command "$@" >/dev/null || THYX_MISSING_DEPS+=("${label}: $*")
+}
+
+_thyx_require_commands_file() {
+  local file="${1:?}"
+  local cmd
+
+  [ -f "${file}" ] || _thyx_die "dependency manifest missing: ${file}"
+
+  while IFS= read -r cmd || [ -n "${cmd}" ]; do
+    [ -n "${cmd}" ] || continue
+    _thyx_require_command "${cmd}"
+  done < "${file}"
+}
+
+_thyx_report_missing_deps() {
+  [ "${#THYX_MISSING_DEPS[@]}" -eq 0 ] && return 0
+
+  printf '\n'
+  _thyx_warn "missing dependencies"
+  printf '%s\n\n' "install these deps, then rerun:"
+
+  local dep
+  for dep in "${THYX_MISSING_DEPS[@]}"; do
+    printf '  - %s\n' "${dep}"
+  done
+
+  printf '\n'
+  _thyx_die "dependency check failed"
+}
+
+_thyx_add_qml_root() {
+  local root="${1:-}"
+  local existing
+
+  [ -n "${root}" ] || return 0
+  [ -d "${root}" ] || return 0
+
+  for existing in "${THYX_QML_ROOTS[@]}"; do
+    [ "${existing}" = "${root}" ] && return 0
+  done
+
+  THYX_QML_ROOTS+=("${root}")
+}
+
+_thyx_add_qml_path_list() {
+  local paths="${1:-}"
+  local entries=()
+  local entry
+
+  [ -n "${paths}" ] || return 0
+
+  IFS=':' read -r -a entries <<< "${paths}"
+  for entry in "${entries[@]}"; do
+    _thyx_add_qml_root "${entry}"
+  done
+}
+
+_thyx_add_qtpaths_qml_root() {
+  local cmd="${1:?}"
+  local root
+
+  command -v "${cmd}" >/dev/null 2>&1 || return 0
+  root="$("${cmd}" --query QT_INSTALL_QML 2>/dev/null || true)"
+  _thyx_add_qml_root "${root}"
+}
+
+_thyx_collect_qml_roots() {
+  _thyx_add_qml_path_list "${QML_IMPORT_PATH:-}"
+  _thyx_add_qml_path_list "${QML2_IMPORT_PATH:-}"
+  _thyx_add_qtpaths_qml_root qtpaths6
+  _thyx_add_qtpaths_qml_root qtpaths
+  _thyx_add_qml_root /usr/lib/qt6/qml
+  _thyx_add_qml_root /usr/lib64/qt6/qml
+  _thyx_add_qml_root /usr/share/qt6/qml
+  _thyx_add_qml_root /usr/lib/qt/qml
+  _thyx_add_qml_root /usr/lib64/qt/qml
+  _thyx_add_qml_root /usr/share/qt/qml
+}
+
+_thyx_qml_import_exists() {
+  local import_name="${1:?}"
+  local major="${2:-}"
+  local rel="${import_name//./\/}"
+  local root
+
+  for root in "${THYX_QML_ROOTS[@]}"; do
+    [ -d "${root}/${rel}" ] && return 0
+    [ -f "${root}/${rel}/qmldir" ] && return 0
+
+    if [ -n "${major}" ]; then
+      [ -d "${root}/${rel}.${major}" ] && return 0
+      [ -f "${root}/${rel}.${major}/qmldir" ] && return 0
+    fi
+  done
+
+  return 1
+}
+
+_thyx_require_qml_imports_file() {
+  local file="${1:?}"
+  local import_name
+  local major
+
+  [ -f "${file}" ] || _thyx_die "qml import manifest missing: ${file}"
+
+  _thyx_collect_qml_roots
+
+  while read -r import_name major || [ -n "${import_name:-}" ]; do
+    [ -n "${import_name:-}" ] || continue
+    if ! _thyx_qml_import_exists "${import_name}" "${major:-}"; then
+      THYX_MISSING_DEPS+=("qml import: ${import_name}${major:+ ${major}.x}")
+    fi
+  done < "${file}"
+}
+
+_thyx_check_install_deps() {
+  local script_dir="${1:?}"
+
+  THYX_MISSING_DEPS=()
+
+  _thyx_step "deps"
+  _thyx_require_commands_file "${script_dir}/data/install.commands"
+  _thyx_require_one_command "sddm greeter" sddm-greeter-qt6 sddm-greeter
+  _thyx_require_qml_imports_file "${script_dir}/data/qml.imports"
+
+  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    _thyx_require_command sudo
+  fi
+
+  if _thyx_source_has_fonts; then
+    _thyx_require_command fc-cache
+  fi
+
+  _thyx_report_missing_deps
+  _thyx_ok "deps ok"
+}
+
+_thyx_check_uninstall_deps() {
+  local script_dir="${1:?}"
+
+  THYX_MISSING_DEPS=()
+
+  _thyx_step "deps"
+  _thyx_require_commands_file "${script_dir}/data/uninstall.commands"
+
+  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    _thyx_require_command sudo
+  fi
+
+  if [ -d "${THYX_FONTS_DST}" ]; then
+    _thyx_require_command fc-cache
+  fi
+
+  _thyx_report_missing_deps
+  _thyx_ok "deps ok"
+}

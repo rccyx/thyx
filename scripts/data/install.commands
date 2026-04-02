@@ -1,0 +1,15 @@
+awk
+basename
+date
+dirname
+find
+grep
+id
+install
+mkdir
+mktemp
+mv
+pwd
+rm
+rsync
+tee
