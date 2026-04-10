@@ -34,7 +34,7 @@ _thyx_print_install_plan() {
   _thyx_hr
   printf '%s\n' "will do:"
   printf '%s\n' "  - validate metadata.desktop MainScript and ConfigFile"
-  printf '%s\n' "  - verify required commands, greeter, and qml imports"
+  printf '%s\n' "  - verify required commands, greeter, and qml runtime modules"
   printf '%s\n' "  - install the theme through an atomic stage"
   printf '%s\n' "  - install bundled fonts when present"
   printf '%s\n' "  - select thyx through one owned sddm drop-in"

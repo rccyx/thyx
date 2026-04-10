@@ -25,6 +25,9 @@ _thyx_install_theme_atomic() {
 
   _thyx_run rsync -a --delete \
     --exclude '.git/' \
+    --exclude '.github/' \
+    --exclude '.agents/' \
+    --exclude '.codex/' \
     --exclude 'justfile' \
     --exclude '.qmllint.ini' \
     "${THYX_REPO_DIR}/" "${stage}/"

@@ -1,0 +1,10 @@
+sddm greeter
+rsync
+fontconfig
+qt6 declarative / qml / quick
+qt6 quick controls
+qt6 quick layouts
+qt6 quick window / screen
+qt6 multimedia qml module
+qt6 qt5compat graphical effects
+qt6 svg support

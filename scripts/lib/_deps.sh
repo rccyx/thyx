@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 THYX_MISSING_DEPS=()
+THYX_MISSING_RUNTIME_DEPS=()
 THYX_QML_ROOTS=()
 
 _thyx_find_one_command() {
@@ -42,18 +43,37 @@ _thyx_require_commands_file() {
 }
 
 _thyx_report_missing_deps() {
-  [ "${#THYX_MISSING_DEPS[@]}" -eq 0 ] && return 0
-
-  printf '\n'
-  _thyx_warn "missing dependencies"
-  printf '%s\n\n' "install these deps, then rerun:"
-
   local dep
-  for dep in "${THYX_MISSING_DEPS[@]}"; do
-    printf '  - %s\n' "${dep}"
-  done
+  local script_dir="${1:-}"
+
+  if [ "${#THYX_MISSING_DEPS[@]}" -eq 0 ] && [ "${#THYX_MISSING_RUNTIME_DEPS[@]}" -eq 0 ]; then
+    return 0
+  fi
 
   printf '\n'
+  if [ "${#THYX_MISSING_DEPS[@]}" -gt 0 ]; then
+    printf '%s\n\n' "missing dependencies"
+
+    for dep in "${THYX_MISSING_DEPS[@]}"; do
+      printf '  - %s\n' "${dep}"
+    done
+
+    printf '\n'
+  fi
+
+  if [ "${#THYX_MISSING_RUNTIME_DEPS[@]}" -gt 0 ]; then
+    printf '%s\n\n' "missing qml runtime modules"
+
+    for dep in "${THYX_MISSING_RUNTIME_DEPS[@]}"; do
+      printf '  - %s\n' "${dep}"
+    done
+
+    printf '\n'
+    if [ -n "${script_dir}" ]; then
+      _thyx_print_runtime_package_hints "${script_dir}"
+    fi
+  fi
+
   _thyx_die "dependency check failed"
 }
 
@@ -106,6 +126,25 @@ _thyx_collect_qml_roots() {
   _thyx_add_qml_root /usr/share/qt/qml
 }
 
+_thyx_collect_source_qml_imports() {
+  find "${THYX_REPO_DIR}/src" "${THYX_REPO_DIR}/ui" -type f -name '*.qml' -exec awk '
+    $1 == "import" && $2 !~ /^"/ {
+      major = ""
+
+      if ($3 ~ /^[0-9]+([.][0-9]+)?$/) {
+        split($3, version, ".")
+        major = version[1]
+      }
+
+      if (major != "") {
+        print $2 " " major
+      } else {
+        print $2
+      }
+    }
+  ' {} + | sort -u
+}
+
 _thyx_qml_import_exists() {
   local import_name="${1:?}"
   local major="${2:-}"
@@ -125,32 +164,68 @@ _thyx_qml_import_exists() {
   return 1
 }
 
-_thyx_require_qml_imports_file() {
-  local file="${1:?}"
+_thyx_require_qml_imports_from_source() {
   local import_name
   local major
-
-  [ -f "${file}" ] || _thyx_die "qml import manifest missing: ${file}"
 
   _thyx_collect_qml_roots
 
   while read -r import_name major || [ -n "${import_name:-}" ]; do
     [ -n "${import_name:-}" ] || continue
     if ! _thyx_qml_import_exists "${import_name}" "${major:-}"; then
-      THYX_MISSING_DEPS+=("qml import: ${import_name}${major:+ ${major}.x}")
+      THYX_MISSING_RUNTIME_DEPS+=("qml runtime: ${import_name}")
     fi
+  done < <(_thyx_collect_source_qml_imports)
+}
+
+_thyx_print_package_hint_file() {
+  local label="${1:?}"
+  local file="${2:?}"
+
+  [ -f "${file}" ] || return 0
+
+  printf '%s\n' "${label}:"
+  sed '/^[[:space:]]*$/d' "${file}" | sed 's/^/  /'
+  printf '\n'
+}
+
+_thyx_print_package_install_hint() {
+  local label="${1:?}"
+  local command="${2:?}"
+  local file="${3:?}"
+  local package
+
+  [ -f "${file}" ] || return 0
+
+  printf '%s\n' "${label}:"
+  printf '  %s' "${command}"
+  while IFS= read -r package || [ -n "${package}" ]; do
+    [ -n "${package}" ] || continue
+    printf ' %s' "${package}"
   done < "${file}"
+  printf '\n\n'
+}
+
+_thyx_print_runtime_package_hints() {
+  local script_dir="${1:?}"
+
+  printf '%s\n\n' "install the matching deps with your distro package manager."
+  _thyx_print_package_install_hint "debian/ubuntu" "sudo apt install" "${script_dir}/data/deps.debian"
+  _thyx_print_package_install_hint "arch" "sudo pacman -S" "${script_dir}/data/deps.arch"
+  _thyx_print_package_install_hint "fedora" "sudo dnf install" "${script_dir}/data/deps.fedora"
+  _thyx_print_package_hint_file "generic" "${script_dir}/data/deps.generic"
 }
 
 _thyx_check_install_deps() {
   local script_dir="${1:?}"
 
   THYX_MISSING_DEPS=()
+  THYX_MISSING_RUNTIME_DEPS=()
 
   _thyx_step "deps"
   _thyx_require_commands_file "${script_dir}/data/install.commands"
   _thyx_require_one_command "sddm greeter" sddm-greeter-qt6 sddm-greeter
-  _thyx_require_qml_imports_file "${script_dir}/data/qml.imports"
+  _thyx_require_qml_imports_from_source
 
   if [ "${EUID:-$(id -u)}" -ne 0 ]; then
     _thyx_require_command sudo
@@ -160,7 +235,7 @@ _thyx_check_install_deps() {
     _thyx_require_command fc-cache
   fi
 
-  _thyx_report_missing_deps
+  _thyx_report_missing_deps "${script_dir}"
   _thyx_ok "deps ok"
 }
 
@@ -168,6 +243,7 @@ _thyx_check_uninstall_deps() {
   local script_dir="${1:?}"
 
   THYX_MISSING_DEPS=()
+  THYX_MISSING_RUNTIME_DEPS=()
 
   _thyx_step "deps"
   _thyx_require_commands_file "${script_dir}/data/uninstall.commands"
