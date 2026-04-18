@@ -17,8 +17,7 @@ l:
 	bash ./scripts/preview
 
 @i:
-	export THYX_GIT_SSH=1
-	bash ./install
+	bash ./scripts/install
 
 @u:
 	bash ./scripts/uninstall
