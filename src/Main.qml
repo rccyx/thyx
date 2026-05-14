@@ -9,7 +9,7 @@ import "components/inputs"
 import "components/buttons"
 import "layouts"
 import "effects"
-import "../ui"
+import "ui"
 
 Pane {
     id: root
