@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "**.txt"
+      - "LICENSE"
+
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "**.txt"
+      - "LICENSE"
+
+concurrency:
+  group: CI-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: ./.github/workflows/on-workflow-call-lint.yml
+
+  format:
+    uses: ./.github/workflows/on-workflow-call-format.yml
+
+  shell:
+    uses: ./.github/workflows/on-workflow-call-shell-check.yml
+
+  distros:
+    needs: [shell, format, lint]
+    uses: ./.github/workflows/on-workflow-call-distro-smoke.yml

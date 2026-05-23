@@ -1,0 +1,170 @@
+name: distro-smoke
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: debian-bookworm
+            image: debian:bookworm
+
+          - id: arch/feb-08-2026
+            image: archlinux:base-20260208.0.488728@sha256:901ce548a325fe7cec8895e5837343af9c8ec89edb420d3a96b2cc6f5e86c771
+            greeter: true
+
+    name: smoke (${{ matrix.id }})
+
+    container:
+      image: ${{ matrix.image }}
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      DEBIAN_FRONTEND: noninteractive
+      DEBIAN_PRIORITY: critical
+      APT_LISTCHANGES_FRONTEND: none
+      GIT_TERMINAL_PROMPT: "0"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: base deps
+        run: |
+          set -Eeuo pipefail
+
+          if command -v git >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y --no-install-recommends git ca-certificates
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf -y install git ca-certificates
+          elif command -v pacman >/dev/null 2>&1; then
+            # FULL upgrade + install in one transaction (no partial upgrades)
+            pacman -Syu --noconfirm --needed git ca-certificates
+          else
+            echo "no supported package manager"
+            exit 1
+          fi
+
+      - name: apt container shim (no systemd pid 1)
+        if: ${{ startsWith(matrix.id, 'mint') || startsWith(matrix.id, 'ubuntu') || startsWith(matrix.id, 'debian') || startsWith(matrix.id, 'zorin') || startsWith(matrix.id, 'popos') }}
+        run: |
+          set -Eeuo pipefail
+          command -v apt-get >/dev/null 2>&1 || exit 0
+          [ "$(cat /proc/1/comm 2>/dev/null || true)" = "systemd" ] && exit 0
+
+          mkdir -p /usr/sbin
+
+          printf '%s\n' '#!/bin/sh' 'exit 101' > /usr/sbin/policy-rc.d
+          chmod 0755 /usr/sbin/policy-rc.d
+
+          if [ -e /usr/sbin/invoke-rc.d ]; then
+            mv /usr/sbin/invoke-rc.d /usr/sbin/invoke-rc.d.real 2>/dev/null || true
+            printf '%s\n' '#!/bin/sh' 'exit 0' > /usr/sbin/invoke-rc.d
+            chmod 0755 /usr/sbin/invoke-rc.d
+          fi
+
+          if [ -e /usr/sbin/service ]; then
+            mv /usr/sbin/service /usr/sbin/service.real 2>/dev/null || true
+            printf '%s\n' '#!/bin/sh' 'exit 0' > /usr/sbin/service
+            chmod 0755 /usr/sbin/service
+          fi
+
+          for p in /usr/bin/systemctl /bin/systemctl; do
+            if [ -e "$p" ]; then
+              mv "$p" "$p.real" 2>/dev/null || true
+              printf '%s\n' '#!/bin/sh' 'exit 0' > "$p"
+              chmod 0755 "$p"
+            fi
+          done
+
+      - name: auth github https clones
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global \
+            url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+          git config --global core.askPass ""
+          git config --global credential.helper ""
+
+      - name: install
+        run: |
+          set -Eeuo pipefail
+          chmod +x ./install
+          ./install --yes
+
+      - name: verify install artifacts
+        run: |
+          set -Eeuo pipefail
+          test -d /usr/share/sddm/themes/thyx
+          test -f /usr/share/sddm/themes/thyx/metadata.desktop
+          test -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf.d/zzzzzz-thyx.conf
+          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf
+
+      - name: greeter loads theme (headless)
+        if: ${{ matrix.greeter == true }}
+        run: |
+          set -Eeuo pipefail
+
+          if command -v pacman >/dev/null 2>&1; then
+            # FULL upgrade + install in one transaction
+            pacman -Syu --noconfirm --needed xorg-server-xvfb dbus
+          fi
+
+          greeter="$(command -v sddm-greeter-qt6 || command -v sddm-greeter || true)"
+          [ -n "$greeter" ] || exit 1
+
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1280x720x24 >/tmp/xvfb.log 2>&1 &
+          xvfb_pid="$!"
+          trap 'kill "$xvfb_pid" >/dev/null 2>&1 || true' EXIT
+          sleep 1
+
+          set +e
+          timeout 8s env QT_QPA_PLATFORM=xcb "$greeter" --test-mode --theme /usr/share/sddm/themes/thyx
+          code="$?"
+          set -e
+
+          [ "$code" -eq 0 ] || [ "$code" -eq 124 ] || exit "$code"
+
+      - name: uninstall
+        run: |
+          set -Eeuo pipefail
+          chmod +x ./uninstall
+          ./uninstall --yes
+
+      - name: verify uninstall cleanup
+        run: |
+          set -Eeuo pipefail
+
+          test ! -d /usr/share/sddm/themes/thyx
+          test ! -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+          test ! -e /etc/sddm.conf.thyx-back
+
+          shopt -s nullglob
+          for f in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+            [ -f "$f" ] || continue
+            if grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' "$f"; then
+              echo "still selects thyx: $f"
+              exit 1
+            fi
+          done
