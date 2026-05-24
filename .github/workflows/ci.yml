@@ -2,34 +2,39 @@ name: CI
 
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "README.md"
-      - "**.txt"
-      - "LICENSE"
-
+    branches:
+      - main
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "README.md"
-      - "**.txt"
-      - "LICENSE"
 
 concurrency:
   group: CI-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  lint:
-    uses: ./.github/workflows/on-workflow-call-lint.yml
+  changes:
+    uses: ./.github/workflows/on-workflow-call-check-changes.yml
 
-  format:
-    uses: ./.github/workflows/on-workflow-call-format.yml
-
-  shell:
+  shellcheck:
+    needs: changes
+    if: needs.changes.outputs.non_docs == 'true'
     uses: ./.github/workflows/on-workflow-call-shell-check.yml
 
+  format:
+    needs: changes
+    if: needs.changes.outputs.non_docs == 'true'
+    uses: ./.github/workflows/on-workflow-call-format.yml
+
+  lint:
+    needs: changes
+    if: needs.changes.outputs.non_docs == 'true'
+    uses: ./.github/workflows/on-workflow-call-lint.yml
+
   distros:
-    needs: [shell, format, lint]
+    needs:
+      - shellcheck
+      - format
+      - lint
     uses: ./.github/workflows/on-workflow-call-distro-smoke.yml

@@ -1,0 +1,43 @@
+name: base runner
+
+description: install the fixed thyx ci toolchain
+
+runs:
+  using: composite
+  steps:
+    - name: install ci toolchain
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        apt-get update
+        apt-get install -y --no-install-recommends \
+          ca-certificates \
+          bash \
+          git \
+          just \
+          python3 \
+          shellcheck \
+          qt6-declarative-dev-tools \
+          qt6-qmllint-plugins
+        rm -rf /var/lib/apt/lists/*
+
+        for tool in qmlformat qmllint; do
+          path="$(command -v "${tool}" 2>/dev/null || true)"
+
+          if [ -z "${path}" ]; then
+            path="$(find /usr -type f -path '*/qt6/bin/*' -name "${tool}" -print -quit)"
+          fi
+
+          if [ -z "${path}" ]; then
+            echo "${tool} not found" >&2
+            exit 1
+          fi
+
+          ln -sf "${path}" "/usr/local/bin/${tool}"
+        done
+
+        command -v qmlformat >/dev/null
+        command -v qmllint >/dev/null
+        command -v shellcheck >/dev/null
+        command -v just >/dev/null

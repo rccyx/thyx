@@ -1,18 +1,21 @@
 name: shellcheck
 
 on:
-  workflow_dispatch:
   workflow_call:
 
 permissions:
   contents: read
 
 jobs:
-  check:
+  shellcheck:
     runs-on: ubuntu-latest
 
     container:
       image: debian:trixie
+
+    defaults:
+      run:
+        shell: bash
 
     env:
       DEBIAN_FRONTEND: noninteractive
@@ -21,17 +24,8 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: install dependencies
-        run: |
-          set -eux
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            ca-certificates \
-            just \
-            shellcheck
-          rm -rf /var/lib/apt/lists/*
+      - name: base runner
+        uses: ./.github/actions/base-runner
 
-      - name: run shellcheck via just
-        run: |
-          set -eux
-          just s
+      - name: shellcheck
+        run: just s

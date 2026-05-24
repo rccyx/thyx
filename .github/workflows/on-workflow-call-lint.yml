@@ -1,48 +1,31 @@
 name: qml-lint
 
 on:
-  workflow_dispatch:
   workflow_call:
 
 permissions:
   contents: read
 
 jobs:
-  qml:
+  lint:
     runs-on: ubuntu-latest
 
     container:
       image: debian:trixie
 
+    defaults:
+      run:
+        shell: bash
+
     env:
       DEBIAN_FRONTEND: noninteractive
-      PATH: /usr/lib/qt6/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: install system dependencies
-        run: |
-          set -eux
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            git \
-            ca-certificates \
-            just \
-            qt6-declarative-dev-tools \
-            qt6-qmllint-plugins
-          rm -rf /var/lib/apt/lists/*
+      - name: base runner
+        uses: ./.github/actions/base-runner
 
-      - name: verify qt qml tooling
-        run: |
-          set -eux
-          command -v qmllint
-          qmllint --version
-          command -v qmlformat
-          qmlformat --version
-
-      - name: qml lint
-        run: |
-          set -eux
-          just l
+      - name: lint
+        run: just l
