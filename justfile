@@ -1,17 +1,18 @@
-alias fc:= format-check
-alias s:= shell
+alias fc := format-check
+alias s := shell
 
 f:
-	bash -c 'find . -name "*.qml" -exec qmlformat -i {} +'
+	bash -c 'find src -name "*.qml" -exec qmlformat -i {} +'
 
 @format-check:
 	bash -c '\
-		find src ui -name "*.qml" -print0 \
+		find src -name "*.qml" -print0 \
 		| xargs -0 qmlformat -i && \
-		git diff --exit-code -- src ui \
+		git diff --exit-code -- src \
 	'
+
 l:
-	find src ui -name "*.qml" -exec qmllint {} +
+	find src -name "*.qml" -exec qmllint {} +
 
 @p:
 	bash ./scripts/preview
