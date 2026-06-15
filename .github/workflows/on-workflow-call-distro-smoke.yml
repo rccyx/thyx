@@ -14,16 +14,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - id: debian-trixie
-            image: debian:trixie
-            greeter: false
+          - id: zorin-17
+            image: ubuntu:22.04
 
-          - id: fedora-latest
-            image: fedora:latest
-            greeter: false
+          - id: ubuntu-24.04
+            image: ubuntu:24.04
 
-          - id: arch-latest
-            image: archlinux:latest
+          - id: mint-21.3
+            image: linuxmintd/mint21.3-amd64:latest
+
+          - id: popos-22.04
+            image: nycticoracs/pop_os:22.04
+
+          - id: fedora-40
+            image: fedora:40
+
+          - id: arch/feb-08-2026
+            image: archlinux:base-20260208.0.488728@sha256:901ce548a325fe7cec8895e5837343af9c8ec89edb420d3a96b2cc6f5e86c771
             greeter: true
 
     name: ${{ matrix.id }}
