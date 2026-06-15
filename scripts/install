@@ -34,6 +34,7 @@ _thyx_print_install_plan() {
   _thyx_hr
   printf '%s\n' "will do:"
   printf '%s\n' "  - validate metadata.desktop MainScript and ConfigFile"
+  printf '%s\n' "  - install missing runtime packages from the distro manifest"
   printf '%s\n' "  - verify required commands, greeter, and qml runtime modules"
   printf '%s\n' "  - install the theme through an atomic stage"
   printf '%s\n' "  - install bundled fonts when present"
@@ -94,11 +95,13 @@ main() {
   _thyx_parse_args "$@"
   _thyx_setup_log
   _thyx_validate_repo_tree "${THYX_REPO_DIR}"
-  _thyx_check_install_deps "${script_dir}"
 
   _thyx_print_install_plan
   _thyx_confirm "proceed? type y to install"
   _thyx_sudo_warmup
+
+  _thyx_install_runtime_deps "${script_dir}"
+  _thyx_check_install_deps "${script_dir}"
 
   _thyx_install_theme_atomic
   _thyx_install_fonts

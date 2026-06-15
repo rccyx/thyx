@@ -1,0 +1,7 @@
+x11-misc/sddm
+net-misc/rsync
+media-libs/fontconfig
+dev-qt/qtdeclarative
+dev-qt/qtmultimedia
+dev-qt/qt5compat
+dev-qt/qtsvg

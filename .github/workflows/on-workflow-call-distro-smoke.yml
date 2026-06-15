@@ -14,24 +14,38 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - id: debian-trixie
+            image: debian:trixie
+
           - id: ubuntu-24.04
             image: ubuntu:24.04
 
-          - id: fedora-40
-            image: fedora:40
+          - id: ubuntu-26.04
+            image: ubuntu:26.04
+
+          - id: mint-22
+            image: linuxmintd/mint22-amd64:latest
+
+          - id: fedora-44
+            image: fedora:44
 
           - id: arch/feb-08-2026
             image: archlinux:base-20260208.0.488728@sha256:901ce548a325fe7cec8895e5837343af9c8ec89edb420d3a96b2cc6f5e86c771
             greeter: true
 
+          - id: opensuse-tumbleweed
+            image: opensuse/tumbleweed:latest
+
+          - id: alpine-edge
+            image: alpine:edge
+
+          - id: gentoo
+            image: gentoo/stage3:latest
+
     name: ${{ matrix.id }}
 
     container:
       image: ${{ matrix.image }}
-
-    defaults:
-      run:
-        shell: bash
 
     env:
       LANG: C.UTF-8
@@ -44,8 +58,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: base dependencies
+        shell: sh
         run: |
-          set -euo pipefail
+          set -eu
 
           if command -v apt-get >/dev/null 2>&1; then
             mkdir -p /usr/sbin
@@ -71,42 +86,37 @@ jobs:
               ca-certificates \
               bash \
               git
-          else
-            echo "no supported package manager found" >&2
-            exit 1
-          fi
-
-      - name: runtime dependencies
-        run: |
-          set -euo pipefail
-
-          install_manifest() {
-            local file="${1:?}"
-            shift
-
-            mapfile -t packages < <(sed '/^[[:space:]]*$/d' "${file}")
-            [ "${#packages[@]}" -gt 0 ] || return 0
-
-            "$@" "${packages[@]}"
-          }
-
-          if command -v apt-get >/dev/null 2>&1; then
-            apt-get update
-            install_manifest scripts/data/deps.debian apt-get install -y --no-install-recommends
-            rm -rf /var/lib/apt/lists/*
-          elif command -v dnf >/dev/null 2>&1; then
-            install_manifest scripts/data/deps.fedora dnf -y install
-          elif command -v pacman >/dev/null 2>&1; then
-            install_manifest scripts/data/deps.arch pacman -Syu --noconfirm --needed
+          elif command -v zypper >/dev/null 2>&1; then
+            zypper --non-interactive refresh
+            zypper --non-interactive install --no-recommends \
+              sudo \
+              ca-certificates \
+              bash \
+              git
+          elif command -v apk >/dev/null 2>&1; then
+            apk update
+            apk add --no-cache \
+              sudo \
+              ca-certificates \
+              bash \
+              git
+          elif command -v emerge >/dev/null 2>&1; then
+            emerge --oneshot --noreplace \
+              app-admin/sudo \
+              app-misc/ca-certificates \
+              app-shells/bash \
+              dev-vcs/git
           else
             echo "no supported package manager found" >&2
             exit 1
           fi
 
       - name: install
+        shell: bash
         run: bash ./scripts/install --yes
 
       - name: verify install artifacts
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -120,12 +130,11 @@ jobs:
 
       - name: greeter loads theme
         if: ${{ matrix.greeter == true }}
+        shell: bash
         run: |
           set -euo pipefail
 
-          if command -v pacman >/dev/null 2>&1; then
-            pacman -Syu --noconfirm --needed xorg-server-xvfb dbus
-          fi
+          pacman -Syu --noconfirm --needed xorg-server-xvfb dbus
 
           greeter="$(command -v sddm-greeter-qt6 || command -v sddm-greeter || true)"
 
@@ -150,9 +159,11 @@ jobs:
           [ "${code}" -eq 0 ] || [ "${code}" -eq 124 ]
 
       - name: uninstall
+        shell: bash
         run: bash ./scripts/uninstall --yes
 
       - name: verify uninstall cleanup
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -162,7 +173,7 @@ jobs:
 
           shopt -s nullglob
 
-          for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+          for file in /etc/sddm.conf.d/*.conf; do
             [ -f "${file}" ] || continue
 
             if grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' "${file}"; then
