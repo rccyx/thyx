@@ -11,7 +11,9 @@ ubuntu:resolute deps.ubuntu-resolute
 ubuntu:22.04 deps.ubuntu-jammy
 ubuntu:24.04 deps.ubuntu-noble
 ubuntu:26.04 deps.ubuntu-resolute
+linuxmint:21* deps.ubuntu-jammy
 linuxmint:22* deps.ubuntu-noble
+zorin:17* deps.ubuntu-jammy
 zorin:18* deps.ubuntu-noble
 fedora:* deps.fedora
 arch:* deps.arch

@@ -45,9 +45,6 @@ jobs:
           - id: alpine-edge
             image: alpine:edge
 
-          - id: gentoo
-            image: gentoo/stage3:latest
-
     name: ${{ matrix.id }}
 
     container:
@@ -76,7 +73,6 @@ jobs:
 
             apt-get update
             apt-get install -y --no-install-recommends $PKGS
-            rm -rf /var/lib/apt/lists/*
           elif command -v dnf >/dev/null 2>&1; then
             dnf -y install $PKGS
           elif command -v pacman >/dev/null 2>&1; then
@@ -87,16 +83,6 @@ jobs:
           elif command -v apk >/dev/null 2>&1; then
             apk update
             apk add --no-cache $PKGS
-          elif command -v emerge >/dev/null 2>&1; then
-            if [ ! -d /var/db/repos/gentoo ]; then
-              emerge --sync
-            fi
-
-            emerge --oneshot --noreplace \
-              app-admin/sudo \
-              app-misc/ca-certificates \
-              app-shells/bash \
-              dev-vcs/git
           else
             echo "no supported package manager found" >&2
             exit 1
@@ -164,7 +150,7 @@ jobs:
 
           shopt -s nullglob
 
-          for file in /etc/sddm.conf.d/*.conf; do
+          for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
             [ -f "${file}" ] || continue
 
             if grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' "${file}"; then
@@ -172,3 +158,70 @@ jobs:
               exit 1
             fi
           done
+
+  gentoo:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: build gentoo image
+        run: |
+          set -euo pipefail
+
+          cat >Dockerfile.gentoo-ci <<'EOF'
+          FROM gentoo/portage:latest AS portage
+          FROM gentoo/stage3:latest
+          COPY --from=portage /var/db/repos/gentoo /var/db/repos/gentoo
+          EOF
+
+          docker build -f Dockerfile.gentoo-ci -t thyx-gentoo-ci .
+
+      - name: smoke
+        run: |
+          set -euo pipefail
+
+          docker run --rm \
+            -v "${PWD}:/work" \
+            -w /work \
+            thyx-gentoo-ci \
+            bash -lc '
+              set -euo pipefail
+
+              emerge --oneshot --noreplace \
+                app-admin/sudo \
+                app-misc/ca-certificates \
+                app-shells/bash \
+                dev-vcs/git
+
+              bash ./scripts/install --yes
+
+              test -d /usr/share/sddm/themes/thyx
+              test -f /usr/share/sddm/themes/thyx/metadata.desktop
+              test -f /usr/share/sddm/themes/thyx/theme.conf
+              test -f /usr/share/sddm/themes/thyx/src/Main.qml
+              test -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+
+              grep -qE "^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$" /etc/sddm.conf.d/zzzzzz-thyx.conf
+
+              bash ./scripts/uninstall --yes
+
+              test ! -d /usr/share/sddm/themes/thyx
+              test ! -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+              test ! -e /etc/sddm.conf.thyx-back
+
+              shopt -s nullglob
+
+              for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+                [ -f "${file}" ] || continue
+
+                if grep -qE "^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$" "${file}"; then
+                  echo "still selects thyx: ${file}" >&2
+                  exit 1
+                fi
+              done
+            '

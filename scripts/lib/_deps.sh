@@ -52,7 +52,8 @@ _thyx_check_uninstall_deps() {
 
 _thyx_install_runtime_deps() {
   local script_dir="${1:?}"
-  local manifest manager missing=() package
+  local manifest manager
+  local missing=()
 
   _thyx_step "packages"
 
@@ -60,10 +61,8 @@ _thyx_install_runtime_deps() {
   _thyx_info "manifest: ${manifest}"
 
   manager="$(_thyx_package_manager)" || _thyx_die "no supported package manager found"
-
-  while IFS= read -r package; do
-    _thyx_package_installed "${package}" || missing+=("${package}")
-  done < <(_thyx_read_clean "${manifest}")
+  _thyx_gentoo_portage_tree_required "${manager}"
+  _thyx_missing_packages "${manifest}" missing
 
   if [ "${#missing[@]}" -eq 0 ]; then
     _thyx_ok "runtime packages already installed"
@@ -71,6 +70,16 @@ _thyx_install_runtime_deps() {
   fi
 
   _thyx_run_package_install "${manager}" "${missing[@]}"
+  missing=()
+  _thyx_missing_packages "${manifest}" missing
+
+  if [ "${#missing[@]}" -gt 0 ]; then
+    printf '\n%s\n\n' "runtime packages still missing after install"
+    printf '  - %s\n' "${missing[@]}"
+    printf '\n'
+    _thyx_die "runtime package install did not satisfy the selected manifest"
+  fi
+
   _thyx_ok "runtime packages installed"
 }
 
@@ -117,6 +126,8 @@ _thyx_require_commands_file() {
 _thyx_require_package_manifest() {
   local file="${1:?}" package
   [ -f "${file}" ] || _thyx_die "dependency manifest missing: ${file}"
+
+  _thyx_gentoo_portage_tree_required "$(_thyx_package_manager || true)"
 
   while IFS= read -r package; do
     _thyx_package_installed "${package}" || THYX_MISSING_DEPS+=("package: ${package}")
@@ -216,6 +227,26 @@ _thyx_package_installed() {
   esac
 }
 
+_thyx_missing_packages() {
+  local manifest="${1:?}"
+  local -n missing_ref="${2:?}"
+  local package
+
+  while IFS= read -r package; do
+    _thyx_package_installed "${package}" || missing_ref+=("${package}")
+  done < <(_thyx_read_clean "${manifest}")
+}
+
+_thyx_gentoo_portage_tree_required() {
+  local manager="${1:-}"
+
+  [ "${manager}" = "emerge" ] || return 0
+  [ -d /var/db/repos/gentoo ] && return 0
+
+  _thyx_die "Gentoo Portage tree missing: /var/db/repos/gentoo
+Run emerge --sync first, or use a container/image with gentoo/portage mounted at /var/db/repos/gentoo."
+}
+
 _thyx_run_package_install() {
   local manager="${1:?}"
   shift
@@ -236,7 +267,6 @@ _thyx_run_package_install() {
       _thyx_run apk update
       _thyx_run apk add --no-cache "$@" ;;
     emerge)
-      [ ! -d /var/db/repos/gentoo ] && _thyx_run emerge --sync
       _thyx_run emerge --oneshot --noreplace "$@" ;;
     *) _thyx_die "unsupported package manager" ;;
   esac
