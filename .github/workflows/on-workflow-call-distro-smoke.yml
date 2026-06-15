@@ -14,17 +14,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - id: debian-bookworm
+            image: debian:bookworm
+
           - id: debian-trixie
             image: debian:trixie
 
-          - id: ubuntu-24.04
-            image: ubuntu:24.04
+          - id: debian-testing
+            image: debian:testing
+
+          - id: debian-sid
+            image: debian:sid
 
           - id: ubuntu-26.04
             image: ubuntu:26.04
 
-          - id: mint-22
-            image: linuxmintd/mint22-amd64:latest
+          - id: mint-22.3
+            image: linuxmintd/mint22.3-amd64:latest
 
           - id: fedora-44
             image: fedora:44
@@ -61,7 +67,6 @@ jobs:
         shell: sh
         run: |
           set -eu
-          # super basic packages
           PKGS="sudo ca-certificates bash git"
 
           if command -v apt-get >/dev/null 2>&1; then
@@ -83,6 +88,10 @@ jobs:
             apk update
             apk add --no-cache $PKGS
           elif command -v emerge >/dev/null 2>&1; then
+            if [ ! -d /var/db/repos/gentoo ]; then
+              emerge --sync
+            fi
+
             emerge --oneshot --noreplace \
               app-admin/sudo \
               app-misc/ca-certificates \

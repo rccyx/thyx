@@ -1,9 +1,7 @@
 sddm-qt6
 rsync
 fontconfig
-qt6-declarative
 qtdeclarative-imports-provides-qt6
 qt6-multimedia
-qt6-multimedia-imports
 qt6-qt5compat-imports
-qt6-svg
+libQt6Svg6

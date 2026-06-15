@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 THYX_MISSING_DEPS=()
+THYX_RUNTIME_MANIFEST=""
 
 _thyx_find_one_command() {
   local cmd
@@ -13,6 +14,98 @@ _thyx_find_one_command() {
   done
 
   return 1
+}
+
+_thyx_check_install_deps() {
+  local script_dir="${1:?}"
+
+  THYX_MISSING_DEPS=()
+
+  _thyx_step "deps"
+  _thyx_require_commands_file "${script_dir}/data/install.commands"
+  _thyx_require_runtime_packages "${script_dir}"
+  _thyx_require_one_command "sddm greeter" sddm-greeter-qt6 sddm-greeter
+
+  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    _thyx_require_command sudo
+  fi
+
+  if _thyx_source_has_fonts; then
+    _thyx_require_command fc-cache
+  fi
+
+  _thyx_report_missing_deps "${script_dir}"
+  _thyx_ok "deps ok"
+}
+
+_thyx_check_uninstall_deps() {
+  local script_dir="${1:?}"
+
+  THYX_MISSING_DEPS=()
+
+  _thyx_step "deps"
+  _thyx_require_commands_file "${script_dir}/data/uninstall.commands"
+
+  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    _thyx_require_command sudo
+  fi
+
+  if [ -d "${THYX_FONTS_DST}" ]; then
+    _thyx_require_command fc-cache
+  fi
+
+  _thyx_report_missing_deps
+  _thyx_ok "deps ok"
+}
+
+_thyx_install_runtime_deps() {
+  local script_dir="${1:?}"
+  local manager
+  local manifest
+  local missing=()
+  local package
+
+  _thyx_step "packages"
+
+  manifest="$(_thyx_prepare_runtime_manifest "${script_dir}")"
+  _thyx_info "manifest: ${manifest}"
+
+  manager="$(_thyx_package_manager || true)"
+  [ -n "${manager}" ] || _thyx_die "no supported package manager found"
+
+  while IFS= read -r package || [ -n "${package}" ]; do
+    [ -n "${package}" ] || continue
+    missing+=("${package}")
+  done < <(_thyx_missing_packages "${manifest}")
+
+  if [ "${#missing[@]}" -eq 0 ]; then
+    _thyx_ok "runtime packages already installed"
+    return 0
+  fi
+
+  _thyx_run_package_install "${manager}" "${missing[@]}"
+  _thyx_ok "runtime packages installed"
+}
+
+_thyx_prepare_runtime_manifest() {
+  local manifest
+  local script_dir="${1:?}"
+
+  if [ -n "${THYX_RUNTIME_MANIFEST}" ]; then
+    printf '%s\n' "${THYX_RUNTIME_MANIFEST}"
+    return 0
+  fi
+
+  manifest="$(_thyx_runtime_manifest "${script_dir}")"
+  [ -f "${manifest}" ] || _thyx_die "dependency manifest missing: ${manifest}"
+
+  if [ "$(basename "${manifest}")" = "deps.generic" ]; then
+    _thyx_print_unsupported_distro "${script_dir}"
+    _thyx_die "unsupported distro: install the generic dependencies manually"
+  fi
+
+  THYX_RUNTIME_MANIFEST="${manifest}"
+  printf '%s\n' "${THYX_RUNTIME_MANIFEST}"
 }
 
 _thyx_require_command() {
@@ -29,8 +122,8 @@ _thyx_require_one_command() {
 }
 
 _thyx_require_commands_file() {
-  local file="${1:?}"
   local cmd
+  local file="${1:?}"
 
   [ -f "${file}" ] || _thyx_die "dependency manifest missing: ${file}"
 
@@ -47,6 +140,110 @@ _thyx_require_commands_file() {
   done < "${file}"
 }
 
+_thyx_require_package_manifest() {
+  local file="${1:?}"
+  local package
+
+  [ -f "${file}" ] || _thyx_die "dependency manifest missing: ${file}"
+
+  while IFS= read -r package || [ -n "${package}" ]; do
+    [ -n "${package}" ] || continue
+    _thyx_package_installed "${package}" || THYX_MISSING_DEPS+=("package: ${package}")
+  done < <(_thyx_manifest_packages "${file}")
+}
+
+_thyx_require_runtime_packages() {
+  local manifest
+  local script_dir="${1:?}"
+
+  manifest="$(_thyx_prepare_runtime_manifest "${script_dir}")"
+  _thyx_require_package_manifest "${manifest}"
+}
+
+_thyx_runtime_manifest() {
+  local script_dir="${1:?}"
+  local manifest
+  local manager
+
+  manifest="$(_thyx_manifest_from_map "${script_dir}")"
+  if [ -n "${manifest}" ]; then
+    printf '%s\n' "${manifest}"
+    return 0
+  fi
+
+  manager="$(_thyx_package_manager || true)"
+  case "${manager}" in
+    pacman)
+      printf '%s\n' "${script_dir}/data/deps.arch"
+      ;;
+    dnf)
+      printf '%s\n' "${script_dir}/data/deps.fedora"
+      ;;
+    zypper)
+      printf '%s\n' "${script_dir}/data/deps.opensuse-tumbleweed"
+      ;;
+    apk)
+      printf '%s\n' "${script_dir}/data/deps.alpine-edge"
+      ;;
+    emerge)
+      printf '%s\n' "${script_dir}/data/deps.gentoo"
+      ;;
+    *)
+      printf '%s\n' "${script_dir}/data/deps.generic"
+      ;;
+  esac
+}
+
+_thyx_manifest_from_map() {
+  local candidate
+  local manifest
+  local pattern
+  local script_dir="${1:?}"
+
+  [ -f "${script_dir}/data/deps.map" ] || _thyx_die "dependency map missing: ${script_dir}/data/deps.map"
+
+  while IFS= read -r candidate || [ -n "${candidate}" ]; do
+    [ -n "${candidate}" ] || continue
+
+    while read -r pattern manifest; do
+      [ -n "${pattern}" ] || continue
+
+      case "${pattern}" in
+        \#*)
+          continue
+          ;;
+      esac
+
+      case "${candidate}" in
+        ${pattern})
+          printf '%s\n' "${script_dir}/data/${manifest}"
+          return 0
+          ;;
+      esac
+    done < "${script_dir}/data/deps.map"
+  done < <(_thyx_os_candidates)
+
+  return 0
+}
+
+_thyx_os_candidates() {
+  local id
+  local ubuntu_codename
+  local version_codename
+  local version_id
+
+  id="$(_thyx_os_field ID || true)"
+  version_codename="$(_thyx_os_field VERSION_CODENAME || true)"
+  version_id="$(_thyx_os_field VERSION_ID || true)"
+  ubuntu_codename="$(_thyx_os_field UBUNTU_CODENAME || true)"
+
+  [ -n "${id}" ] || return 0
+  [ -n "${version_codename}" ] && printf '%s:%s\n' "${id}" "${version_codename}"
+  [ -n "${version_id}" ] && printf '%s:%s\n' "${id}" "${version_id}"
+  printf '%s:*\n' "${id}"
+  [ -n "${ubuntu_codename}" ] && printf 'ubuntu:%s\n' "${ubuntu_codename}"
+}
+
 _thyx_os_field() {
   local key="${1:?}"
 
@@ -59,122 +256,6 @@ _thyx_os_field() {
       exit
     }
   ' /etc/os-release
-}
-
-_thyx_has_word() {
-  local word="${1:?}"
-  local haystack="${2:-}"
-
-  case " ${haystack} " in
-    *" ${word} "*)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
-
-_thyx_runtime_manifest() {
-  local script_dir="${1:?}"
-  local id
-  local id_like
-  local version_id
-  local version_codename
-  local ubuntu_codename
-
-  id="$(_thyx_os_field ID || true)"
-  id_like="$(_thyx_os_field ID_LIKE || true)"
-  version_id="$(_thyx_os_field VERSION_ID || true)"
-  version_codename="$(_thyx_os_field VERSION_CODENAME || true)"
-  ubuntu_codename="$(_thyx_os_field UBUNTU_CODENAME || true)"
-
-  case "${id}:${version_codename}" in
-    debian:trixie)
-      printf '%s\n' "${script_dir}/data/deps.debian-trixie"
-      return 0
-      ;;
-    ubuntu:noble)
-      printf '%s\n' "${script_dir}/data/deps.ubuntu-noble"
-      return 0
-      ;;
-    ubuntu:resolute)
-      printf '%s\n' "${script_dir}/data/deps.ubuntu-resolute"
-      return 0
-      ;;
-  esac
-
-  case "${id}:${version_id}" in
-    debian:13*)
-      printf '%s\n' "${script_dir}/data/deps.debian-trixie"
-      return 0
-      ;;
-    ubuntu:24.04)
-      printf '%s\n' "${script_dir}/data/deps.ubuntu-noble"
-      return 0
-      ;;
-    ubuntu:26.04)
-      printf '%s\n' "${script_dir}/data/deps.ubuntu-resolute"
-      return 0
-      ;;
-    linuxmint:22*)
-      printf '%s\n' "${script_dir}/data/deps.ubuntu-noble"
-      return 0
-      ;;
-    fedora:*)
-      printf '%s\n' "${script_dir}/data/deps.fedora"
-      return 0
-      ;;
-    arch:*)
-      printf '%s\n' "${script_dir}/data/deps.arch"
-      return 0
-      ;;
-    opensuse-tumbleweed:*)
-      printf '%s\n' "${script_dir}/data/deps.opensuse-tumbleweed"
-      return 0
-      ;;
-    alpine:*)
-      printf '%s\n' "${script_dir}/data/deps.alpine-edge"
-      return 0
-      ;;
-    gentoo:*)
-      printf '%s\n' "${script_dir}/data/deps.gentoo"
-      return 0
-      ;;
-  esac
-
-  case "${ubuntu_codename}" in
-    noble)
-      printf '%s\n' "${script_dir}/data/deps.ubuntu-noble"
-      return 0
-      ;;
-    resolute)
-      printf '%s\n' "${script_dir}/data/deps.ubuntu-resolute"
-      return 0
-      ;;
-  esac
-
-  if _thyx_has_word arch "${id_like}"; then
-    printf '%s\n' "${script_dir}/data/deps.arch"
-    return 0
-  fi
-
-  if _thyx_has_word fedora "${id_like}"; then
-    printf '%s\n' "${script_dir}/data/deps.fedora"
-    return 0
-  fi
-
-  if command -v pacman >/dev/null 2>&1; then
-    printf '%s\n' "${script_dir}/data/deps.arch"
-    return 0
-  fi
-
-  if command -v dnf >/dev/null 2>&1; then
-    printf '%s\n' "${script_dir}/data/deps.fedora"
-    return 0
-  fi
-
-  printf '%s\n' "${script_dir}/data/deps.generic"
 }
 
 _thyx_package_manager() {
@@ -212,8 +293,8 @@ _thyx_package_manager() {
 }
 
 _thyx_package_installed() {
-  local package="${1:?}"
   local manager
+  local package="${1:?}"
 
   manager="$(_thyx_package_manager || true)"
 
@@ -221,11 +302,14 @@ _thyx_package_installed() {
     apt)
       dpkg-query -W -f='${Status}\n' "${package}" 2>/dev/null | grep -qE '^install ok installed$'
       ;;
-    dnf|zypper)
+    dnf)
       rpm -q "${package}" >/dev/null 2>&1
       ;;
     pacman)
       pacman -Q "${package}" >/dev/null 2>&1
+      ;;
+    zypper)
+      rpm -q "${package}" >/dev/null 2>&1 || rpm -q --whatprovides "${package}" >/dev/null 2>&1
       ;;
     apk)
       apk info -e "${package}" >/dev/null 2>&1
@@ -294,71 +378,16 @@ _thyx_run_package_install() {
       _thyx_run apk add --no-cache "$@"
       ;;
     emerge)
+      if [ ! -d /var/db/repos/gentoo ]; then
+        _thyx_run emerge --sync
+      fi
+
       _thyx_run emerge --oneshot --noreplace "$@"
       ;;
     *)
       _thyx_die "unsupported package manager"
       ;;
   esac
-}
-
-_thyx_install_runtime_deps() {
-  local script_dir="${1:?}"
-  local manifest
-  local manager
-  local package
-  local missing=()
-
-  _thyx_step "packages"
-
-  manifest="$(_thyx_runtime_manifest "${script_dir}")"
-
-  if [ "$(basename "${manifest}")" = "deps.generic" ]; then
-    _thyx_print_package_hint_file "generic" "${manifest}"
-    _thyx_die "unsupported distro: install the generic dependencies manually"
-  fi
-
-  manager="$(_thyx_package_manager || true)"
-  [ -n "${manager}" ] || _thyx_die "no supported package manager found"
-
-  while IFS= read -r package || [ -n "${package}" ]; do
-    [ -n "${package}" ] || continue
-    missing+=("${package}")
-  done < <(_thyx_missing_packages "${manifest}")
-
-  if [ "${#missing[@]}" -eq 0 ]; then
-    _thyx_ok "runtime packages already installed"
-    return 0
-  fi
-
-  _thyx_info "manifest: ${manifest}"
-  _thyx_run_package_install "${manager}" "${missing[@]}"
-  _thyx_ok "runtime packages installed"
-}
-
-_thyx_require_package_manifest() {
-  local file="${1:?}"
-  local package
-
-  [ -f "${file}" ] || _thyx_die "dependency manifest missing: ${file}"
-
-  while IFS= read -r package || [ -n "${package}" ]; do
-    [ -n "${package}" ] || continue
-    _thyx_package_installed "${package}" || THYX_MISSING_DEPS+=("package: ${package}")
-  done < <(_thyx_manifest_packages "${file}")
-}
-
-_thyx_require_runtime_packages() {
-  local script_dir="${1:?}"
-  local manifest
-
-  manifest="$(_thyx_runtime_manifest "${script_dir}")"
-
-  if [ "$(basename "${manifest}")" = "deps.generic" ]; then
-    return 0
-  fi
-
-  _thyx_require_package_manifest "${manifest}"
 }
 
 _thyx_has_runtime_dep_failure() {
@@ -376,8 +405,8 @@ _thyx_has_runtime_dep_failure() {
 }
 
 _thyx_print_package_hint_file() {
-  local label="${1:?}"
   local file="${2:?}"
+  local label="${1:?}"
   local package
 
   [ -f "${file}" ] || return 0
@@ -397,44 +426,50 @@ _thyx_print_package_hint_file() {
   printf '\n'
 }
 
-_thyx_print_package_install_hint() {
-  local label="${1:?}"
-  local command="${2:?}"
-  local file="${3:?}"
-  local package
+_thyx_print_supported_patterns() {
+  local map="${1:?}"
+  local manifest
+  local pattern
 
-  [ -f "${file}" ] || return 0
+  [ -f "${map}" ] || return 0
 
-  printf '%s\n' "${label}:"
-  printf '  %s' "${command}"
-  while IFS= read -r package || [ -n "${package}" ]; do
-    [ -n "${package}" ] || continue
+  printf '%s\n' "supported distro patterns:"
+  while read -r pattern manifest; do
+    [ -n "${pattern}" ] || continue
 
-    case "${package}" in
+    case "${pattern}" in
       \#*)
         continue
         ;;
     esac
 
-    printf ' %s' "${package}"
-  done < "${file}"
-  printf '\n\n'
+    printf '  %s\n' "${pattern}"
+  done < "${map}"
+  printf '\n'
+}
+
+_thyx_print_unsupported_distro() {
+  local script_dir="${1:?}"
+
+  printf '\n'
+  printf '%s\n' "unsupported distro"
+  printf '  detected ID: %s\n' "$(_thyx_os_field ID || true)"
+  printf '  detected VERSION_ID: %s\n' "$(_thyx_os_field VERSION_ID || true)"
+  printf '  detected VERSION_CODENAME: %s\n' "$(_thyx_os_field VERSION_CODENAME || true)"
+  printf '  detected UBUNTU_CODENAME: %s\n' "$(_thyx_os_field UBUNTU_CODENAME || true)"
+  printf '\n'
+
+  _thyx_print_supported_patterns "${script_dir}/data/deps.map"
+  _thyx_print_package_hint_file "deps.generic" "${script_dir}/data/deps.generic"
 }
 
 _thyx_print_runtime_package_hints() {
+  local manifest
   local script_dir="${1:?}"
 
+  manifest="$(_thyx_prepare_runtime_manifest "${script_dir}")"
   printf '%s\n\n' "install the matching deps with your distro package manager."
-
-  _thyx_print_package_install_hint "debian trixie" "sudo apt-get install" "${script_dir}/data/deps.debian-trixie"
-  _thyx_print_package_install_hint "ubuntu 24.04 / mint 22" "sudo apt-get install" "${script_dir}/data/deps.ubuntu-noble"
-  _thyx_print_package_install_hint "ubuntu 26.04" "sudo apt-get install" "${script_dir}/data/deps.ubuntu-resolute"
-  _thyx_print_package_install_hint "arch" "sudo pacman -S" "${script_dir}/data/deps.arch"
-  _thyx_print_package_install_hint "fedora" "sudo dnf install" "${script_dir}/data/deps.fedora"
-  _thyx_print_package_install_hint "opensuse tumbleweed" "sudo zypper install" "${script_dir}/data/deps.opensuse-tumbleweed"
-  _thyx_print_package_install_hint "alpine edge" "sudo apk add" "${script_dir}/data/deps.alpine-edge"
-  _thyx_print_package_install_hint "gentoo" "sudo emerge --oneshot --noreplace" "${script_dir}/data/deps.gentoo"
-  _thyx_print_package_hint_file "generic" "${script_dir}/data/deps.generic"
+  _thyx_print_package_hint_file "$(basename "${manifest}")" "${manifest}"
 }
 
 _thyx_report_missing_deps() {
@@ -457,46 +492,4 @@ _thyx_report_missing_deps() {
   fi
 
   _thyx_die "dependency check failed"
-}
-
-_thyx_check_install_deps() {
-  local script_dir="${1:?}"
-
-  THYX_MISSING_DEPS=()
-
-  _thyx_step "deps"
-  _thyx_require_commands_file "${script_dir}/data/install.commands"
-  _thyx_require_runtime_packages "${script_dir}"
-  _thyx_require_one_command "sddm greeter" sddm-greeter-qt6 sddm-greeter
-
-  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-    _thyx_require_command sudo
-  fi
-
-  if _thyx_source_has_fonts; then
-    _thyx_require_command fc-cache
-  fi
-
-  _thyx_report_missing_deps "${script_dir}"
-  _thyx_ok "deps ok"
-}
-
-_thyx_check_uninstall_deps() {
-  local script_dir="${1:?}"
-
-  THYX_MISSING_DEPS=()
-
-  _thyx_step "deps"
-  _thyx_require_commands_file "${script_dir}/data/uninstall.commands"
-
-  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-    _thyx_require_command sudo
-  fi
-
-  if [ -d "${THYX_FONTS_DST}" ]; then
-    _thyx_require_command fc-cache
-  fi
-
-  _thyx_report_missing_deps
-  _thyx_ok "deps ok"
 }
