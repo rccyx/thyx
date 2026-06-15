@@ -61,6 +61,8 @@ jobs:
         shell: sh
         run: |
           set -eu
+          # super basic packages
+          PKGS="sudo ca-certificates bash git"
 
           if command -v apt-get >/dev/null 2>&1; then
             mkdir -p /usr/sbin
@@ -68,38 +70,18 @@ jobs:
             chmod 0755 /usr/sbin/policy-rc.d
 
             apt-get update
-            apt-get install -y --no-install-recommends \
-              sudo \
-              ca-certificates \
-              bash \
-              git
+            apt-get install -y --no-install-recommends $PKGS
             rm -rf /var/lib/apt/lists/*
           elif command -v dnf >/dev/null 2>&1; then
-            dnf -y install \
-              sudo \
-              ca-certificates \
-              bash \
-              git
+            dnf -y install $PKGS
           elif command -v pacman >/dev/null 2>&1; then
-            pacman -Syu --noconfirm --needed \
-              sudo \
-              ca-certificates \
-              bash \
-              git
+            pacman -Syu --noconfirm --needed $PKGS
           elif command -v zypper >/dev/null 2>&1; then
             zypper --non-interactive refresh
-            zypper --non-interactive install --no-recommends \
-              sudo \
-              ca-certificates \
-              bash \
-              git
+            zypper --non-interactive install --no-recommends $PKGS
           elif command -v apk >/dev/null 2>&1; then
             apk update
-            apk add --no-cache \
-              sudo \
-              ca-certificates \
-              bash \
-              git
+            apk add --no-cache $PKGS
           elif command -v emerge >/dev/null 2>&1; then
             emerge --oneshot --noreplace \
               app-admin/sudo \
