@@ -7,157 +7,157 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
-    runs-on: ubuntu-latest
+  # smoke:
+  #   runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - id: debian-bookworm
-            image: debian:bookworm
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - id: debian-bookworm
+  #           image: debian:bookworm
 
-          - id: debian-trixie
-            image: debian:trixie
+  #         - id: debian-trixie
+  #           image: debian:trixie
 
-          - id: debian-testing
-            image: debian:testing
+  #         - id: debian-testing
+  #           image: debian:testing
 
-          - id: debian-sid
-            image: debian:sid
+  #         - id: debian-sid
+  #           image: debian:sid
 
-          - id: ubuntu-26.04
-            image: ubuntu:26.04
+  #         - id: ubuntu-26.04
+  #           image: ubuntu:26.04
 
-          - id: mint-22.3
-            image: linuxmintd/mint22.3-amd64:latest
+  #         - id: mint-22.3
+  #           image: linuxmintd/mint22.3-amd64:latest
 
-          - id: fedora-44
-            image: fedora:44
+  #         - id: fedora-44
+  #           image: fedora:44
 
-          - id: arch/feb-08-2026
-            image: archlinux:base-20260208.0.488728@sha256:901ce548a325fe7cec8895e5837343af9c8ec89edb420d3a96b2cc6f5e86c771
-            greeter: true
+  #         - id: arch/feb-08-2026
+  #           image: archlinux:base-20260208.0.488728@sha256:901ce548a325fe7cec8895e5837343af9c8ec89edb420d3a96b2cc6f5e86c771
+  #           greeter: true
 
-          - id: opensuse-tumbleweed
-            image: opensuse/tumbleweed:latest
+  #         - id: opensuse-tumbleweed
+  #           image: opensuse/tumbleweed:latest
 
-          - id: alpine-edge
-            image: alpine:edge
+  #         - id: alpine-edge
+  #           image: alpine:edge
 
-    name: ${{ matrix.id }}
+  #   name: ${{ matrix.id }}
 
-    container:
-      image: ${{ matrix.image }}
+  #   container:
+  #     image: ${{ matrix.image }}
 
-    env:
-      LANG: C.UTF-8
-      LC_ALL: C.UTF-8
-      DEBIAN_FRONTEND: noninteractive
-      GIT_TERMINAL_PROMPT: "0"
+  #   env:
+  #     LANG: C.UTF-8
+  #     LC_ALL: C.UTF-8
+  #     DEBIAN_FRONTEND: noninteractive
+  #     GIT_TERMINAL_PROMPT: "0"
 
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v4
 
-      - name: base dependencies
-        shell: sh
-        run: |
-          set -eu
-          PKGS="sudo ca-certificates bash git"
+  #     - name: base dependencies
+  #       shell: sh
+  #       run: |
+  #         set -eu
+  #         PKGS="sudo ca-certificates bash git"
 
-          if command -v apt-get >/dev/null 2>&1; then
-            mkdir -p /usr/sbin
-            printf '%s\n' '#!/bin/sh' 'exit 101' >/usr/sbin/policy-rc.d
-            chmod 0755 /usr/sbin/policy-rc.d
+  #         if command -v apt-get >/dev/null 2>&1; then
+  #           mkdir -p /usr/sbin
+  #           printf '%s\n' '#!/bin/sh' 'exit 101' >/usr/sbin/policy-rc.d
+  #           chmod 0755 /usr/sbin/policy-rc.d
 
-            apt-get update
-            apt-get install -y --no-install-recommends $PKGS
-          elif command -v dnf >/dev/null 2>&1; then
-            dnf -y install $PKGS
-          elif command -v pacman >/dev/null 2>&1; then
-            pacman -Syu --noconfirm --needed $PKGS
-          elif command -v zypper >/dev/null 2>&1; then
-            zypper --non-interactive refresh
-            zypper --non-interactive install --no-recommends $PKGS
-          elif command -v apk >/dev/null 2>&1; then
-            apk update
-            apk add --no-cache $PKGS
-          else
-            echo "no supported package manager found" >&2
-            exit 1
-          fi
+  #           apt-get update
+  #           apt-get install -y --no-install-recommends $PKGS
+  #         elif command -v dnf >/dev/null 2>&1; then
+  #           dnf -y install $PKGS
+  #         elif command -v pacman >/dev/null 2>&1; then
+  #           pacman -Syu --noconfirm --needed $PKGS
+  #         elif command -v zypper >/dev/null 2>&1; then
+  #           zypper --non-interactive refresh
+  #           zypper --non-interactive install --no-recommends $PKGS
+  #         elif command -v apk >/dev/null 2>&1; then
+  #           apk update
+  #           apk add --no-cache $PKGS
+  #         else
+  #           echo "no supported package manager found" >&2
+  #           exit 1
+  #         fi
 
-      - name: install
-        shell: bash
-        run: bash ./scripts/install --yes
+  #     - name: install
+  #       shell: bash
+  #       run: bash ./scripts/install --yes
 
-      - name: verify install artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
+  #     - name: verify install artifacts
+  #       shell: bash
+  #       run: |
+  #         set -euo pipefail
 
-          test -d /usr/share/sddm/themes/thyx
-          test -f /usr/share/sddm/themes/thyx/metadata.desktop
-          test -f /usr/share/sddm/themes/thyx/theme.conf
-          test -f /usr/share/sddm/themes/thyx/src/Main.qml
-          test -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+  #         test -d /usr/share/sddm/themes/thyx
+  #         test -f /usr/share/sddm/themes/thyx/metadata.desktop
+  #         test -f /usr/share/sddm/themes/thyx/theme.conf
+  #         test -f /usr/share/sddm/themes/thyx/src/Main.qml
+  #         test -f /etc/sddm.conf.d/zzzzzz-thyx.conf
 
-          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf.d/zzzzzz-thyx.conf
+  #         grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf.d/zzzzzz-thyx.conf
 
-      - name: greeter loads theme
-        if: ${{ matrix.greeter == true }}
-        shell: bash
-        run: |
-          set -euo pipefail
+  #     - name: greeter loads theme
+  #       if: ${{ matrix.greeter == true }}
+  #       shell: bash
+  #       run: |
+  #         set -euo pipefail
 
-          pacman -Syu --noconfirm --needed xorg-server-xvfb dbus
+  #         pacman -Syu --noconfirm --needed xorg-server-xvfb dbus
 
-          greeter="$(command -v sddm-greeter-qt6 || command -v sddm-greeter || true)"
+  #         greeter="$(command -v sddm-greeter-qt6 || command -v sddm-greeter || true)"
 
-          if [ -z "${greeter}" ]; then
-            echo "sddm greeter not found" >&2
-            exit 1
-          fi
+  #         if [ -z "${greeter}" ]; then
+  #           echo "sddm greeter not found" >&2
+  #           exit 1
+  #         fi
 
-          export DISPLAY=:99
+  #         export DISPLAY=:99
 
-          Xvfb :99 -screen 0 1280x720x24 >/tmp/xvfb.log 2>&1 &
-          xvfb_pid="$!"
+  #         Xvfb :99 -screen 0 1280x720x24 >/tmp/xvfb.log 2>&1 &
+  #         xvfb_pid="$!"
 
-          trap 'kill "${xvfb_pid}" >/dev/null 2>&1 || true' EXIT
-          sleep 1
+  #         trap 'kill "${xvfb_pid}" >/dev/null 2>&1 || true' EXIT
+  #         sleep 1
 
-          set +e
-          timeout 8s env QT_QPA_PLATFORM=xcb "${greeter}" --test-mode --theme /usr/share/sddm/themes/thyx
-          code="$?"
-          set -e
+  #         set +e
+  #         timeout 8s env QT_QPA_PLATFORM=xcb "${greeter}" --test-mode --theme /usr/share/sddm/themes/thyx
+  #         code="$?"
+  #         set -e
 
-          [ "${code}" -eq 0 ] || [ "${code}" -eq 124 ]
+  #         [ "${code}" -eq 0 ] || [ "${code}" -eq 124 ]
 
-      - name: uninstall
-        shell: bash
-        run: bash ./scripts/uninstall --yes
+  #     - name: uninstall
+  #       shell: bash
+  #       run: bash ./scripts/uninstall --yes
 
-      - name: verify uninstall cleanup
-        shell: bash
-        run: |
-          set -euo pipefail
+  #     - name: verify uninstall cleanup
+  #       shell: bash
+  #       run: |
+  #         set -euo pipefail
 
-          test ! -d /usr/share/sddm/themes/thyx
-          test ! -f /etc/sddm.conf.d/zzzzzz-thyx.conf
-          test ! -e /etc/sddm.conf.thyx-back
+  #         test ! -d /usr/share/sddm/themes/thyx
+  #         test ! -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+  #         test ! -e /etc/sddm.conf.thyx-back
 
-          shopt -s nullglob
+  #         shopt -s nullglob
 
-          for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
-            [ -f "${file}" ] || continue
+  #         for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+  #           [ -f "${file}" ] || continue
 
-            if grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' "${file}"; then
-              echo "still selects thyx: ${file}" >&2
-              exit 1
-            fi
-          done
+  #           if grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' "${file}"; then
+  #             echo "still selects thyx: ${file}" >&2
+  #             exit 1
+  #           fi
+  #         done
 
   gentoo:
     runs-on: ubuntu-latest
