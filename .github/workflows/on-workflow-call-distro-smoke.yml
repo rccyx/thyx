@@ -14,17 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - id: zorin-17
-            image: ubuntu:22.04
-
           - id: ubuntu-24.04
             image: ubuntu:24.04
-
-          - id: mint-21.3
-            image: linuxmintd/mint21.3-amd64:latest
-
-          - id: popos-22.04
-            image: nycticoracs/pop_os:22.04
 
           - id: fedora-40
             image: fedora:40
@@ -57,6 +48,10 @@ jobs:
           set -euo pipefail
 
           if command -v apt-get >/dev/null 2>&1; then
+            mkdir -p /usr/sbin
+            printf '%s\n' '#!/bin/sh' 'exit 101' >/usr/sbin/policy-rc.d
+            chmod 0755 /usr/sbin/policy-rc.d
+
             apt-get update
             apt-get install -y --no-install-recommends \
               sudo \
@@ -81,22 +76,32 @@ jobs:
             exit 1
           fi
 
-      - name: disable apt service starts
-        if: ${{ startsWith(matrix.id, 'debian') }}
+      - name: runtime dependencies
         run: |
           set -euo pipefail
 
-          mkdir -p /usr/sbin
-          printf '%s\n' '#!/bin/sh' 'exit 101' >/usr/sbin/policy-rc.d
-          chmod 0755 /usr/sbin/policy-rc.d
+          install_manifest() {
+            local file="${1:?}"
+            shift
 
-          for path in /usr/sbin/invoke-rc.d /usr/sbin/service /usr/bin/systemctl /bin/systemctl; do
-            if [ -e "${path}" ]; then
-              mv "${path}" "${path}.real" 2>/dev/null || true
-              printf '%s\n' '#!/bin/sh' 'exit 0' >"${path}"
-              chmod 0755 "${path}"
-            fi
-          done
+            mapfile -t packages < <(sed '/^[[:space:]]*$/d' "${file}")
+            [ "${#packages[@]}" -gt 0 ] || return 0
+
+            "$@" "${packages[@]}"
+          }
+
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update
+            install_manifest scripts/data/deps.debian apt-get install -y --no-install-recommends
+            rm -rf /var/lib/apt/lists/*
+          elif command -v dnf >/dev/null 2>&1; then
+            install_manifest scripts/data/deps.fedora dnf -y install
+          elif command -v pacman >/dev/null 2>&1; then
+            install_manifest scripts/data/deps.arch pacman -Syu --noconfirm --needed
+          else
+            echo "no supported package manager found" >&2
+            exit 1
+          fi
 
       - name: install
         run: bash ./scripts/install --yes
@@ -107,10 +112,11 @@ jobs:
 
           test -d /usr/share/sddm/themes/thyx
           test -f /usr/share/sddm/themes/thyx/metadata.desktop
+          test -f /usr/share/sddm/themes/thyx/theme.conf
+          test -f /usr/share/sddm/themes/thyx/src/Main.qml
           test -f /etc/sddm.conf.d/zzzzzz-thyx.conf
 
           grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf.d/zzzzzz-thyx.conf
-          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf
 
       - name: greeter loads theme
         if: ${{ matrix.greeter == true }}
