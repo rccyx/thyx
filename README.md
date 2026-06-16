@@ -10,14 +10,14 @@
   <a href="#installation">
     <img src="https://img.shields.io/badge/Platform-Linux-black?logo=linux&logoColor=white&style=for-the-badge&labelColor=111111" alt="Platform: Linux"/>
   </a>
-  <a href="https://github.com/rccyx/thyx">
+    <a href="https://github.com/rccyx/thyx">
     <img src="https://img.shields.io/github/repo-size/rccyx/thyx?style=for-the-badge&color=black&labelColor=111111&logo=github&logoColor=white" alt="Size"/>
   </a>
   <a href="https://github.com/rccyx/thyx/releases">
     <img src="https://img.shields.io/github/v/release/rccyx/thyx?style=for-the-badge&color=black&labelColor=111111&logo=git&logoColor=white" alt="Version"/>
   </a>
   <a href="https://github.com/rccyx/thyx/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-black?logo=apache&logoColor=white&style=for-the-badge&labelColor=111111" alt="License: MIT"/>
+    <img src="https://img.shields.io/badge/License-MIT-black?logo=mit&logoColor=white&style=for-the-badge&labelColor=111111" alt="License: MIT"/>
   </a>
 </p>
 
@@ -25,7 +25,11 @@
 
 ## Preview
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/160c90cf-a557-4d6b-ae78-9cb2703e5a11" />
+<div align="center">
+  <video title="demo" src="https://github.com/user-attachments/assets/87deecf7-40d6-4570-a520-0a81a7622501" width="100%" controls>
+    Your browser does not support the video tag.
+  </video>
+</div>
 
 ## Presets
 
@@ -47,9 +51,13 @@ Fully configurable, so you can also [create your own](#creating-your-own).
 
 ### Dynamic Preset (Cinder)
 
-But of course.
+It supports video backgrounds.
 
-<img src="assets/video-demo.gif"/>
+<div align="center">
+  <video title="demo" src="https://github.com/user-attachments/assets/2338a5a3-1ac6-4003-86b8-00bb3bc218f6" width="100%" controls>
+    Your browser does not support the video tag.
+  </video>
+</div>
 
 <details>
 <summary><strong>Supported formats and guidelines</strong></summary>
@@ -225,7 +233,7 @@ sudo systemctl restart sddm
 ```
 
 > [!WARNING]
-> Restarting SDDM logs you out of your session!
+> Restarting SDDM will log you out of your current session!
 
 Or reboot.
 
@@ -446,7 +454,7 @@ When enabled, it automatically calls PAM’s fingerprint check on load and logs 
 If fingerprint isn’t configured or fails, the greeter falls back to password login normally.
 
 > [!IMPORTANT]
-> This doesn’t enable fingerprint support itself. PAM must already be configured for fingerprints in `/etc/pam.d/sddm` with `pam_fprintd.so`.
+> PAM must already be configured for fingerprints in `/etc/pam.d/sddm` with `pam_fprintd.so`.
 
 ## Issues
 
