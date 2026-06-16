@@ -30,15 +30,17 @@ _thyx_print_install_plan() {
   printf 'theme id:      %s\n' "${THYX_THEME_ID}"
   printf 'theme dst:     %s\n' "${THYX_THEME_DST}"
   printf 'fonts dst:     %s\n' "${THYX_FONTS_DST}"
-  printf 'sddm drop-in:  %s\n' "${THYX_DROPIN}"
+  printf 'sddm conf:     %s\n' "${THYX_SDDM_CONF}"
+  printf 'sddm backup:   %s\n' "${THYX_SDDM_CONF_BACK}"
   _thyx_hr
   printf '%s\n' "will do:"
   printf '%s\n' "  - validate metadata.desktop MainScript and ConfigFile"
   printf '%s\n' "  - install missing runtime packages from the distro manifest"
   printf '%s\n' "  - verify required commands, greeter, and qml runtime modules"
-  printf '%s\n' "  - install the theme through an atomic stage"
+  printf '%s\n' "  - install the theme through one atomic stage"
   printf '%s\n' "  - install bundled fonts when present"
-  printf '%s\n' "  - select thyx through one owned sddm drop-in"
+  printf '%s\n' "  - backup /etc/sddm.conf once"
+  printf '%s\n' "  - select thyx in /etc/sddm.conf"
   printf '%s\n' "  - enable sddm when systemctl exists"
   _thyx_hr
 }
@@ -57,15 +59,21 @@ _thyx_enable_sddm_if_systemctl_exists() {
 
 _thyx_verify_install() {
   local current
+  local config_file
 
   _thyx_step "verify"
   _thyx_validate_repo_tree "${THYX_THEME_DST}"
-  [ -f "${THYX_DROPIN}" ] || _thyx_die "missing sddm drop-in: ${THYX_DROPIN}"
 
-  current="$(_thyx_effective_theme)"
-  if [ "${current}" != "${THYX_THEME_ID}" ]; then
-    _thyx_effective_theme_debug
-    _thyx_die "effective SDDM theme is ${current:-empty}, expected ${THYX_THEME_ID}"
+  current="$(_thyx_theme_current_from_file "${THYX_SDDM_CONF}")"
+  [ "${current}" = "${THYX_THEME_ID}" ] || _thyx_die "${THYX_SDDM_CONF} selects ${current:-empty}, expected ${THYX_THEME_ID}"
+
+  config_file="$(_thyx_meta_get ConfigFile "${THYX_THEME_DST}/metadata.desktop")"
+  [ "${config_file}" = "theme.conf" ] || _thyx_die "ConfigFile is ${config_file:-empty}, expected theme.conf"
+  [ -f "${THYX_THEME_DST}/${config_file}" ] || _thyx_die "ConfigFile missing: ${THYX_THEME_DST}/${config_file}"
+
+  if grep -RIn 'themes/.*\.conf' "${THYX_THEME_DST}/metadata.desktop" "${THYX_THEME_DST}/theme.conf" "${THYX_THEME_DST}/src" >/dev/null 2>&1; then
+    grep -RIn 'themes/.*\.conf' "${THYX_THEME_DST}/metadata.desktop" "${THYX_THEME_DST}/theme.conf" "${THYX_THEME_DST}/src" || true
+    _thyx_die "installed theme still references themes/*.conf"
   fi
 
   if _thyx_source_has_fonts; then

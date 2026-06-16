@@ -30,12 +30,12 @@ _thyx_print_uninstall_plan() {
   printf 'theme id:      %s\n' "${THYX_THEME_ID}"
   printf 'theme dst:     %s\n' "${THYX_THEME_DST}"
   printf 'fonts dst:     %s\n' "${THYX_FONTS_DST}"
-  printf 'sddm drop-in:  %s\n' "${THYX_DROPIN}"
+  printf 'sddm conf:     %s\n' "${THYX_SDDM_CONF}"
+  printf 'sddm backup:   %s\n' "${THYX_SDDM_CONF_BACK}"
   _thyx_hr
   printf '%s\n' "will do:"
-  printf '%s\n' "  - remove owned thyx sddm selection files"
-  printf '%s\n' "  - restore legacy sddm.conf backup when present"
-  printf '%s\n' "  - otherwise move Current=thyx to a fallback when needed"
+  printf '%s\n' "  - restore /etc/sddm.conf.thyx-back when present"
+  printf '%s\n' "  - otherwise remove Current=thyx from /etc/sddm.conf"
   printf '%s\n' "  - remove installed theme files"
   printf '%s\n' "  - remove installed fonts"
   _thyx_hr
@@ -43,31 +43,21 @@ _thyx_print_uninstall_plan() {
 
 _thyx_verify_uninstall() {
   local current
-  local leftover=0
-  local path
 
   _thyx_step "verify"
 
   [ ! -d "${THYX_THEME_DST}" ] || _thyx_warn "theme dir still exists: ${THYX_THEME_DST}"
   [ ! -d "${THYX_FONTS_DST}" ] || _thyx_warn "fonts dir still exists: ${THYX_FONTS_DST}"
+  [ ! -e "${THYX_THEME_STAGE}" ] || _thyx_warn "stage dir still exists: ${THYX_THEME_STAGE}"
+  [ ! -e "${THYX_THEME_PREVIOUS}" ] || _thyx_warn "previous dir still exists: ${THYX_THEME_PREVIOUS}"
 
-  shopt -s nullglob
-  for path in "${THYX_SDDM_CONF_D_DIR}"/*"${THYX_THEME_ID}"*.conf "${THYX_SDDM_CONF_D_DIR}"/*"${THYX_THEME_ID}"*.conf.*.bak; do
-    leftover=1
-    _thyx_warn "leftover: ${path}"
-  done
-  shopt -u nullglob
-
-  [ "${leftover}" -eq 0 ] && _thyx_ok "no thyx drop-ins remain"
-
-  current="$(_thyx_effective_theme)"
+  current="$(_thyx_theme_current_from_file "${THYX_SDDM_CONF}" || true)"
   if [ "${current}" = "${THYX_THEME_ID}" ]; then
-    _thyx_effective_theme_debug
-    _thyx_warn "effective SDDM theme still selects ${THYX_THEME_ID}"
+    _thyx_warn "${THYX_SDDM_CONF} still selects ${THYX_THEME_ID}"
     return 0
   fi
 
-  _thyx_ok "effective SDDM theme no longer selects ${THYX_THEME_ID}"
+  _thyx_ok "sddm no longer selects ${THYX_THEME_ID}"
 }
 
 _thyx_print_uninstall_hints() {
@@ -91,7 +81,6 @@ main() {
   _thyx_sudo_warmup
 
   _thyx_remove_sddm_selection
-  _thyx_restore_legacy_sddm_conf
   _thyx_remove_theme_files
   _thyx_remove_fonts
   _thyx_verify_uninstall

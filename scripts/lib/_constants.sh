@@ -2,13 +2,14 @@
 # shellcheck disable=SC2034
 
 THYX_THEME_ID="thyx"
-THYX_THEME_DST="/usr/share/sddm/themes/${THYX_THEME_ID}"
+THYX_THEME_ROOT="/usr/share/sddm/themes"
+THYX_THEME_DST="${THYX_THEME_ROOT}/${THYX_THEME_ID}"
+THYX_THEME_STAGE="${THYX_THEME_ROOT}/.${THYX_THEME_ID}.stage"
+THYX_THEME_PREVIOUS="${THYX_THEME_ROOT}/.${THYX_THEME_ID}.previous"
 THYX_FONTS_DST="/usr/local/share/fonts/${THYX_THEME_ID}"
 
 THYX_SDDM_CONF="/etc/sddm.conf"
 THYX_SDDM_CONF_BACK="${THYX_SDDM_CONF}.thyx-back"
-THYX_SDDM_CONF_D_DIR="/etc/sddm.conf.d"
-THYX_DROPIN="${THYX_SDDM_CONF_D_DIR}/zzzzzz-${THYX_THEME_ID}.conf"
 
 THYX_HOME="${HOME:-}"
 THYX_CACHE_DIR="${XDG_CACHE_HOME:-${THYX_HOME}/.cache}/thyx"
