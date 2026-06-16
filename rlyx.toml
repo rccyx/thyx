@@ -1,6 +1,6 @@
 # @see https://github.com/rccyx/rlyx
 
-version = "0.0.0"
+version = "1.0.0"
 default_bump = "patch"
 bump_commit_message = "bump to {{version}}"
 post_bump_command = ""
