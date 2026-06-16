@@ -25,7 +25,7 @@
 
 ## Preview
 
-<img width="1920" height="1080" alt="preview" src="https://github.com/user-attachments/assets/4e4d2b3a-e712-4bff-ad8b-8d332278fc1c" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/160c90cf-a557-4d6b-ae78-9cb2703e5a11" />
 
 ### Presets
 
@@ -37,7 +37,7 @@ Fully configurable, so you can also [create your own](#creating-your-own).
 
 |                                                             **Gilded**                                                              |                                                             **Blush**                                                              |
 | :---------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: |
-| <img src="https://github.com/user-attachments/assets/4e4d2b3a-e712-4bff-ad8b-8d332278fc1c" width="100%" height="240" alt="Gilded"/> | <img src="https://github.com/user-attachments/assets/7a1be327-1097-4b7e-b860-c4b0ab94e3be" width="100%" height="240" alt="Blush"/> |
+| <img src="https://github.com/user-attachments/assets/160c90cf-a557-4d6b-ae78-9cb2703e5a11" width="100%" height="240" alt="Gilded"/> | <img src="https://github.com/user-attachments/assets/7a1be327-1097-4b7e-b860-c4b0ab94e3be" width="100%" height="240" alt="Blush"/> |
 
 |                                                             **Malachite**                                                              |                                                             **Sakura**                                                              |
 | :------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------: |

@@ -1,3 +1,4 @@
+# debian
 debian:bookworm deps.debian-bookworm
 debian:trixie deps.debian-trixie
 debian:forky deps.debian-forky
@@ -5,16 +6,23 @@ debian:sid deps.debian-sid
 debian:12* deps.debian-bookworm
 debian:13* deps.debian-trixie
 debian:* deps.debian-trixie
+
+# ubuntu
 ubuntu:jammy deps.ubuntu-jammy
 ubuntu:noble deps.ubuntu-noble
 ubuntu:resolute deps.ubuntu-resolute
 ubuntu:22.04 deps.ubuntu-jammy
 ubuntu:24.04 deps.ubuntu-noble
 ubuntu:26.04 deps.ubuntu-resolute
+
+# ubuntu based
 linuxmint:21* deps.ubuntu-jammy
 linuxmint:22* deps.ubuntu-noble
+pop:22.04 deps.ubuntu-jammy
 zorin:17* deps.ubuntu-jammy
 zorin:18* deps.ubuntu-noble
+
+# rolling and independent
 fedora:* deps.fedora
 arch:* deps.arch
 opensuse-tumbleweed:* deps.opensuse-tumbleweed

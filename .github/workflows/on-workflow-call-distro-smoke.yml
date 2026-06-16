@@ -1,6 +1,7 @@
 name: distro-smoke
 
 on:
+  workflow_dispatch:
   workflow_call:
 
 permissions:
@@ -26,11 +27,15 @@ jobs:
           - id: debian-sid
             image: debian:sid
 
+          - id: ubuntu-22.04
+            image: ubuntu:22.04
+
           - id: ubuntu-26.04
             image: ubuntu:26.04
 
-          - id: mint-22.3
-            image: linuxmintd/mint22.3-amd64:latest
+          - id: popos-22.04
+            image: nycticoracs/pop_os:22.04
+            expect_id: pop
 
           - id: fedora-44
             image: fedora:44
@@ -45,7 +50,7 @@ jobs:
           - id: alpine-edge
             image: alpine:edge
 
-    name: ${{ matrix.id }}
+    name: smoke (${{ matrix.id }})
 
     container:
       image: ${{ matrix.image }}
@@ -54,23 +59,37 @@ jobs:
       LANG: C.UTF-8
       LC_ALL: C.UTF-8
       DEBIAN_FRONTEND: noninteractive
+      DEBIAN_PRIORITY: critical
+      APT_LISTCHANGES_FRONTEND: none
       GIT_TERMINAL_PROMPT: "0"
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
+      - name: show identity
+        shell: sh
+        run: |
+          set -eu
+
+          cat /etc/os-release
+
+          if [ -n "${{ matrix.expect_id }}" ]; then
+            grep -q "^ID=${{ matrix.expect_id }}$" /etc/os-release
+          fi
+
       - name: base dependencies
         shell: sh
         run: |
           set -eu
+
           PKGS="sudo ca-certificates bash git"
 
-          if command -v apt-get >/dev/null 2>&1; then
-            mkdir -p /usr/sbin
-            printf '%s\n' '#!/bin/sh' 'exit 101' >/usr/sbin/policy-rc.d
-            chmod 0755 /usr/sbin/policy-rc.d
+          if command -v git >/dev/null 2>&1; then
+            exit 0
+          fi
 
+          if command -v apt-get >/dev/null 2>&1; then
             apt-get update
             apt-get install -y --no-install-recommends $PKGS
           elif command -v dnf >/dev/null 2>&1; then
@@ -87,6 +106,39 @@ jobs:
             echo "no supported package manager found" >&2
             exit 1
           fi
+
+      - name: apt container shim
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          command -v apt-get >/dev/null 2>&1 || exit 0
+          [ "$(cat /proc/1/comm 2>/dev/null || true)" = "systemd" ] && exit 0
+
+          mkdir -p /usr/sbin
+
+          printf '%s\n' '#!/bin/sh' 'exit 101' >/usr/sbin/policy-rc.d
+          chmod 0755 /usr/sbin/policy-rc.d
+
+          if [ -e /usr/sbin/invoke-rc.d ]; then
+            mv /usr/sbin/invoke-rc.d /usr/sbin/invoke-rc.d.real 2>/dev/null || true
+            printf '%s\n' '#!/bin/sh' 'exit 0' >/usr/sbin/invoke-rc.d
+            chmod 0755 /usr/sbin/invoke-rc.d
+          fi
+
+          if [ -e /usr/sbin/service ]; then
+            mv /usr/sbin/service /usr/sbin/service.real 2>/dev/null || true
+            printf '%s\n' '#!/bin/sh' 'exit 0' >/usr/sbin/service
+            chmod 0755 /usr/sbin/service
+          fi
+
+          for path in /usr/bin/systemctl /bin/systemctl; do
+            if [ -e "${path}" ]; then
+              mv "${path}" "${path}.real" 2>/dev/null || true
+              printf '%s\n' '#!/bin/sh' 'exit 0' >"${path}"
+              chmod 0755 "${path}"
+            fi
+          done
 
       - name: install
         shell: bash

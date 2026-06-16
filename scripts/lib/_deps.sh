@@ -181,17 +181,16 @@ _thyx_manifest_from_map() {
 }
 
 _thyx_os_candidates() {
-  local id version_codename version_id ubuntu_codename
+  local id version_codename version_id
+
   id="$(_thyx_os_field ID || true)"
   version_codename="$(_thyx_os_field VERSION_CODENAME || true)"
   version_id="$(_thyx_os_field VERSION_ID || true)"
-  ubuntu_codename="$(_thyx_os_field UBUNTU_CODENAME || true)"
 
   [ -n "${id}" ] || return 0
   [ -n "${version_codename}" ] && printf '%s:%s\n' "${id}" "${version_codename}"
   [ -n "${version_id}" ] && printf '%s:%s\n' "${id}" "${version_id}"
   printf '%s:*\n' "${id}"
-  [ -n "${ubuntu_codename}" ] && printf 'ubuntu:%s\n' "${ubuntu_codename}"
 }
 
 _thyx_os_field() {
