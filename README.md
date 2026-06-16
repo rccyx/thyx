@@ -99,13 +99,34 @@ For non interactive installs, pass `--yes`.
 ./scripts/install --yes
 ```
 
-This will auto install and setup everything for **Debian** based systems (**Ubuntu**, **Zorin**, **Mint**, **Pop**), **Arch**, **Fedora**, **openSUSE**, **Alpine**, and **Gentoo**.
+The installer will install and setup everything for the following (through the manifests in [`scripts/data`](./scripts/data/)):
+
+- **Debian**
+  - Bookworm
+  - Trixie
+  - Forky
+  - Sid
+
+- **Ubuntu**
+  - Jammy / 22.04
+  - Noble / 24.04
+  - Resolute / 26.04
+
+  - **Linux Mint**
+  - **Pop!\_OS**
+  - **Zorin**
+
+  - **Arch**
+  - **Fedora**
+  - **openSUSE Tumbleweed**
+  - **Alpine Edge**
+  - **Gentoo**
 
 If you use another distro, have a look at the generic [package contract](/scripts/data/deps.generic) and map it through your package manager.
 
-The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, and keeps the current session alive.
+The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, writes the SDDM theme selection, and keeps the current session alive.
 
-During setup, it prints a [plan](https://developer.hashicorp.com/terraform/cli/commands/plan), asks for confirmation and sudo, then installs end to end and logs the run.
+During setup, it prints the exact plan, asks for confirmation and sudo, installs end to end, and logs the run.
 
 <details>
 <summary><strong>What the installer does</strong></summary>
@@ -114,24 +135,41 @@ During setup, it prints a [plan](https://developer.hashicorp.com/terraform/cli/c
 
 It runs in this order.
 
-1. validates that the current repo is thyx
+1. finds the Thyx repo from the script path or current directory
 2. detects the distro
-3. selects the matching manifest from [`scripts/data/deps.map`](./scripts/data/deps.map)
+3. selects the matching package manifest from [`scripts/data/deps.map`](./scripts/data/deps.map)
 4. installs missing runtime packages from the selected manifest
-5. verifies required commands, SDDM greeter, and declared runtime packages
-6. prints a plan before touching the theme path
+5. verifies required shell commands, the SDDM greeter, runtime packages, and `fc-cache` when bundled fonts exist
+6. prints the install plan
 7. asks for confirmation and sudo
-8. stages the repo into `/usr/share/sddm/themes/.thyx.stage.<timestamp>`
-9. installs the theme atomically into `/usr/share/sddm/themes/thyx`
-10. installs bundled fonts into `/usr/local/share/fonts/thyx`
-11. refreshes the font cache
-12. selects Thyx through one owned SDDM drop in at `/etc/sddm.conf.d/zzzzzz-thyx.conf`
-13. enables SDDM when `systemctl` exists
-14. verifies the installed theme, drop in, effective SDDM theme, and fonts
-15. prints a safe greeter test command
-16. logs everything to `~/.cache/thyx/thyx-install-*.log`
+8. removes the previous fixed stage path at `/usr/share/sddm/themes/.thyx.stage` if exists
+9. removes the previous fixed rollback path at `/usr/share/sddm/themes/.thyx.previous` if exists
+10. creates a fresh stage directory at `/usr/share/sddm/themes/.thyx.stage`
+11. copies the repo into the stage directory with `rsync --delete`
+12. strips repo-only files from the staged install:
+    - `.git/`
+    - `.github/`
+    - `justfile`
+    - `.qmllint.ini`
+
+13. validates the staged theme before activation
+14. moves an existing `/usr/share/sddm/themes/thyx` to `/usr/share/sddm/themes/.thyx.previous` during activation
+15. moves `/usr/share/sddm/themes/.thyx.stage` into `/usr/share/sddm/themes/thyx`
+16. validates the activated theme
+17. restores `/usr/share/sddm/themes/.thyx.previous` if activation or validation fails
+18. removes `/usr/share/sddm/themes/.thyx.previous` after a successful activation
+19. installs bundled fonts into `/usr/local/share/fonts/thyx`
+20. refreshes the font cache
+21. backs up `/etc/sddm.conf` once to `/etc/sddm.conf.thyx-back` when an existing config is present
+22. writes `Current=thyx` under `[Theme]` in `/etc/sddm.conf`
+23. enables SDDM when `systemctl` exists
+24. verifies the installed theme, selected SDDM theme, metadata, config file, and fonts
+25. prints a safe greeter test command
+26. logs everything to `~/.cache/thyx/thyx-install-*.log`
 
 After installation, the theme is at `/usr/share/sddm/themes/thyx`. This is where SDDM loads it from.
+
+The same install can be done manually by following the same steps.
 
 </details>
 
@@ -166,18 +204,17 @@ It runs in this order.
 - verifies required uninstall commands
 - prints a plan before touching anything
 - asks for confirmation and sudo
-- removes the owned Thyx SDDM drop-in at `/etc/sddm.conf.d/zzzzzz-thyx.conf`
-- removes Thyx-named SDDM drop-ins and old Thyx config backups under `/etc/sddm.conf.d/`
-- restores `/etc/sddm.conf` from `/etc/sddm.conf.thyx-back` when present
-- otherwise moves `Current=thyx` in `/etc/sddm.conf` to a fallback theme when needed
+- restores `/etc/sddm.conf` from `/etc/sddm.conf.thyx-back` when that backup exists
+- otherwise removes `Current=thyx` from `/etc/sddm.conf`
 - removes:
   - `/usr/share/sddm/themes/thyx`
-  - `/usr/share/sddm/themes/.thyx.stage.*`
-  - `/usr/share/sddm/themes/.thyx.bak.*`
+  - `/usr/share/sddm/themes/.thyx.stage`
+  - `/usr/share/sddm/themes/.thyx.previous`
   - `/usr/local/share/fonts/thyx`
+
 - refreshes font cache when fonts were removed
-- verifies that Thyx files and drop-ins are gone
-- verifies that the effective SDDM theme no longer resolves to `thyx`
+- verifies that Thyx files are gone
+- verifies that `/etc/sddm.conf` no longer selects `thyx`
 - never restarts SDDM automatically
 - logs everything to `~/.cache/thyx/thyx-uninstall-*.log`
 

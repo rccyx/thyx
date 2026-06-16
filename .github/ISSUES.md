@@ -1,5 +1,7 @@
 # Issues
 
+Have you read the [Guide?](/docs/guide.md)
+
 Use [issues](https://github.com/rccyx/thyx/issues) for bug reports, broken installs, distro problems, preview failures, SDDM selection problems, missing runtime packages, QML errors, and clear improvement proposals.
 
 Useful details:
@@ -15,4 +17,4 @@ Useful details:
 - screenshots when the issue is visual
 - exact config changes when the issue involves `theme.conf` or a preset
 
-Vague reports are hard to act on. Reports with logs, commands, and exact system details can usually be fixed.
+Vague reports are hard to act on.

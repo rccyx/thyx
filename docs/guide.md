@@ -47,9 +47,7 @@ SDDM means Simple Desktop Display Manager.
 
 It's a display manager. It owns the graphical login screen. It starts before the desktop session, shows the login UI, talks to PAM for authentication, then launches the selected session.
 
-SDDM is built on Qt. Its themes are written in QML.
-
-That's why this is a QML project. SDDM loads the theme directory, reads the theme metadata, loads the main QML file, and renders that QML as the login screen.
+SDDM is built on Qt. Its themes are written in QML. So this is a QML project. SDDM loads the theme directory, reads the theme metadata, loads the main QML file, and renders that QML as the login screen.
 
 ## What's QML?
 
@@ -151,13 +149,10 @@ systemctl status display-manager --no-pager
 
 ## How SDDM chooses a theme
 
-SDDM reads configuration files.
-
-The two important locations are:
+SDDM reads its configuration from:
 
 ```bash
 /etc/sddm.conf
-/etc/sddm.conf.d/*.conf
 ```
 
 Theme selection is controlled by this config section:
@@ -195,60 +190,40 @@ points SDDM at:
 
 The theme directory must contain valid SDDM theme metadata and the QML files referenced by that metadata.
 
-## Why Thyx uses `zzzzzz-thyx.conf`
+## How Thyx selects itself
 
-SDDM can read more than one config file.
-
-A system may have:
+The installer writes the selected theme into:
 
 ```bash
 /etc/sddm.conf
-/etc/sddm.conf.d/kde_settings.conf
-/etc/sddm.conf.d/some-distro-theme.conf
-/etc/sddm.conf.d/zzzzzz-thyx.conf
 ```
 
-If more than one file sets:
-
-```ini
-[Theme]
-Current=...
-```
-
-then the effective value is the one that wins after SDDM reads the config files.
-
-Thyx writes:
+If that file already exists, the installer first creates one stable backup:
 
 ```bash
-/etc/sddm.conf.d/zzzzzz-thyx.conf
+/etc/sddm.conf.thyx-back
 ```
 
-with:
+Then it sets:
 
 ```ini
 [Theme]
 Current=thyx
 ```
 
-The name starts with `zzzzzz` so it sorts late in `/etc/sddm.conf.d`. It makes the Thyx selector win over earlier distro or desktop drop-ins without asking the user to manually delete them.
+Repeated installs reuse that same backup path. They don't create timestamped config backups.
 
-The file is also easy to recognize and easy to remove.
+On uninstall, the previous config is restored from `/etc/sddm.conf.thyx-back` when that backup exists. If no backup exists, the uninstaller only removes `Current=thyx`.
 
 ## Inspect the theme selection
 
-Show every SDDM theme selection line:
+Show the active SDDM theme selection:
 
 ```bash
-grep -RIn '^[[:space:]]*Current[[:space:]]*=' /etc/sddm.conf /etc/sddm.conf.d 2>/dev/null || true
+grep -nE '^\[Theme\]|^[[:space:]]*Current[[:space:]]*=' /etc/sddm.conf 2>/dev/null || true
 ```
 
-Show the Thyx drop-in:
-
-```bash
-cat /etc/sddm.conf.d/zzzzzz-thyx.conf
-```
-
-Expected content:
+Expected content after install:
 
 ```ini
 [Theme]
@@ -283,17 +258,42 @@ The installer does this:
 find the Thyx repository
 create a log file
 validate metadata.desktop
-check required commands and runtime dependencies
+verify MainScript=src/Main.qml
+verify ConfigFile=theme.conf
+detect the distro
+select the matching dependency manifest
+install missing runtime packages
+verify required commands and runtime dependencies
 print an install plan
 ask for confirmation
 authenticate sudo
-stage the theme into a temporary directory
-copy the staged theme into /usr/share/sddm/themes/thyx
+remove the old fixed stage path
+remove the old fixed rollback path
+create /usr/share/sddm/themes/.thyx.stage
+copy the repo into the stage directory with rsync --delete
+strip repo-only files from the staged copy
+validate the staged theme
+move an existing /usr/share/sddm/themes/thyx to /usr/share/sddm/themes/.thyx.previous during activation
+move /usr/share/sddm/themes/.thyx.stage to /usr/share/sddm/themes/thyx
+validate the activated theme
+restore /usr/share/sddm/themes/.thyx.previous if activation fails
+remove /usr/share/sddm/themes/.thyx.previous after successful activation
 install bundled fonts
-write the SDDM drop-in
+refresh the font cache
+backup /etc/sddm.conf once when an existing config is present
+set Current=thyx in /etc/sddm.conf
 enable sddm.service
 verify the installed result
 print a safe preview command
+```
+
+The staged copy excludes:
+
+```text
+.git/
+.github/
+justfile
+.qmllint.ini
 ```
 
 The installer asks for sudo because it writes into:
@@ -301,7 +301,7 @@ The installer asks for sudo because it writes into:
 ```bash
 /usr/share/sddm/themes
 /usr/local/share/fonts
-/etc/sddm.conf.d
+/etc/sddm.conf
 ```
 
 Those are system paths.
@@ -313,7 +313,7 @@ The installer doesn't copy files directly into the live theme directory one by o
 It first creates a staging directory:
 
 ```bash
-/usr/share/sddm/themes/.thyx.stage.<timestamp>
+/usr/share/sddm/themes/.thyx.stage
 ```
 
 Then it copies the repo into that staging directory.
@@ -326,30 +326,31 @@ Then it moves the staged directory into the final path:
 /usr/share/sddm/themes/thyx
 ```
 
-If an older install exists, it is temporarily moved into a backup path:
+If an older install exists, it is temporarily moved into:
 
 ```bash
-/usr/share/sddm/themes/.thyx.bak.<timestamp>
+/usr/share/sddm/themes/.thyx.previous
 ```
 
-If activation fails, the backup can be restored.
+If activation fails, that previous copy can be restored.
+
+After a successful activation, the temporary previous copy is removed.
 
 ## Files Thyx touches
 
-| path                                           | owner          | purpose                             |
-| ---------------------------------------------- | -------------- | ----------------------------------- |
-| `/usr/share/sddm/themes/thyx`                  | Thyx installer | installed SDDM theme                |
-| `/usr/share/sddm/themes/thyx/metadata.desktop` | Thyx installer | tells SDDM how to load the theme    |
-| `/usr/share/sddm/themes/thyx/theme.conf`       | Thyx installer | theme configuration                 |
-| `/usr/share/sddm/themes/thyx/src/Main.qml`     | Thyx installer | main QML UI                         |
-| `/usr/share/sddm/themes/.thyx.stage.*`         | Thyx installer | temporary install staging directory |
-| `/usr/share/sddm/themes/.thyx.bak.*`           | Thyx installer | temporary backup during activation  |
-| `/usr/local/share/fonts/thyx`                  | Thyx installer | bundled fonts installed for SDDM    |
-| `/etc/sddm.conf.d/zzzzzz-thyx.conf`            | Thyx installer | SDDM theme selector                 |
-| `~/.cache/thyx/thyx-install-*.log`             | Thyx installer | install logs                        |
-| `~/.cache/thyx/thyx-uninstall-*.log`           | Thyx installer | uninstall logs                      |
-
-The current installer selects Thyx through the owned drop-in. It doesn't need to rewrite every SDDM config file on the machine.
+| path                                           | owner          | purpose                                |
+| ---------------------------------------------- | -------------- | -------------------------------------- |
+| `/usr/share/sddm/themes/thyx`                  | Thyx installer | installed SDDM theme                   |
+| `/usr/share/sddm/themes/thyx/metadata.desktop` | Thyx installer | tells SDDM how to load the theme       |
+| `/usr/share/sddm/themes/thyx/theme.conf`       | Thyx installer | theme configuration                    |
+| `/usr/share/sddm/themes/thyx/src/Main.qml`     | Thyx installer | main QML UI                            |
+| `/usr/share/sddm/themes/.thyx.stage`           | Thyx installer | temporary install staging directory    |
+| `/usr/share/sddm/themes/.thyx.previous`        | Thyx installer | temporary rollback copy during install |
+| `/usr/local/share/fonts/thyx`                  | Thyx installer | bundled fonts installed for SDDM       |
+| `/etc/sddm.conf`                               | SDDM config    | selected SDDM theme                    |
+| `/etc/sddm.conf.thyx-back`                     | Thyx installer | one backup of the previous SDDM config |
+| `~/.cache/thyx/thyx-install-*.log`             | Thyx installer | install logs                           |
+| `~/.cache/thyx/thyx-uninstall-*.log`           | Thyx installer | uninstall logs                         |
 
 ## Why fonts are installed system wide
 
@@ -425,25 +426,20 @@ For non-interactive uninstall:
 ./scripts/uninstall --yes
 ```
 
-The uninstaller removes Thyx’s owned SDDM selection files, removes the installed theme files, removes installed fonts, refreshes font cache when needed, and verifies that the effective SDDM theme no longer resolves to `thyx`.
+The uninstaller restores `/etc/sddm.conf.thyx-back` when that backup exists.
+
+If no backup exists, it only removes `Current=thyx` from `/etc/sddm.conf`.
 
 It removes:
 
 ```bash
-/etc/sddm.conf.d/zzzzzz-thyx.conf
 /usr/share/sddm/themes/thyx
-/usr/share/sddm/themes/.thyx.stage.*
-/usr/share/sddm/themes/.thyx.bak.*
+/usr/share/sddm/themes/.thyx.stage
+/usr/share/sddm/themes/.thyx.previous
 /usr/local/share/fonts/thyx
 ```
 
-It also removes other Thyx-named SDDM drop-ins under:
-
-```bash
-/etc/sddm.conf.d
-```
-
-That handles old Thyx selector files from earlier installer versions.
+It refreshes the font cache when fonts were removed, verifies the result, and never restarts SDDM automatically.
 
 ## Recovery protocol
 
@@ -481,15 +477,15 @@ A common fallback is:
 breeze
 ```
 
-### 3. Remove the Thyx selector
+### 3. Restore the previous SDDM config when available
+
+If Thyx created a backup, restore it:
 
 ```bash
-sudo rm -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+sudo test -f /etc/sddm.conf.thyx-back && sudo cp /etc/sddm.conf.thyx-back /etc/sddm.conf
 ```
 
-This removes the last-wins Thyx override.
-
-### 4. Set SDDM to a fallback theme
+### 4. Or set SDDM to a fallback theme manually
 
 Create or edit:
 
