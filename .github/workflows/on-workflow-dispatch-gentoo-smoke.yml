@@ -1,0 +1,91 @@
+name: gentoo-smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gentoo:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: build gentoo test root
+        run: |
+          set -euo pipefail
+
+          # Gentoo is kept outside the normal distro smoke workflow on purpose.
+          #
+          # The regular distro smoke job is supposed to stay cheap:
+          # pull a binary distro image, install runtime deps, install thyx, uninstall thyx,
+          # then exit. Debian, Ubuntu, Mint, Fedora, Arch, openSUSE, and Alpine all fit
+          # that model well enough for every push and pull request.
+          #
+          # Gentoo has a different cost shape. A raw stage3 image is a minimal Gentoo
+          # root, and the Portage tree lives separately. Installing SDDM and Qt through
+          # emerge can involve Portage metadata, dependency solving, binary package
+          # lookup, and sometimes source build cost depending on profile and binhost
+          # availability.
+          #
+          # That makes Gentoo a real support target, but a bad default PR tax.
+          # This manual workflow exists so Gentoo support can still be tested on demand
+          # without making every normal CI run slow or expensive.
+
+          cat >Dockerfile.gentoo-smoke <<'EOF'
+          FROM gentoo/portage:latest AS portage
+          FROM gentoo/stage3:latest
+
+          COPY --from=portage /var/db/repos/gentoo /var/db/repos/gentoo
+          EOF
+
+          docker build -f Dockerfile.gentoo-smoke -t thyx-gentoo-smoke .
+
+      - name: smoke
+        run: |
+          set -euo pipefail
+
+          docker run --rm \
+            -v "${PWD}:/work" \
+            -w /work \
+            thyx-gentoo-smoke \
+            bash -lc '
+              set -euo pipefail
+              
+              
+              ######## 
+              bash ./scripts/install --yes
+              ########
+              
+              
+              test -d /usr/share/sddm/themes/thyx
+              test -f /usr/share/sddm/themes/thyx/metadata.desktop
+              test -f /usr/share/sddm/themes/thyx/theme.conf
+              test -f /usr/share/sddm/themes/thyx/src/Main.qml
+              test -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+
+              grep -qE "^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$" /etc/sddm.conf.d/zzzzzz-thyx.conf
+
+              bash ./scripts/uninstall --yes
+
+              test ! -d /usr/share/sddm/themes/thyx
+              test ! -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+              test ! -e /etc/sddm.conf.thyx-back
+
+              shopt -s nullglob
+
+              for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+                [ -f "${file}" ] || continue
+
+                if grep -qE "^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$" "${file}"; then
+                  echo "still selects thyx: ${file}" >&2
+                  exit 1
+                fi
+              done
+            '

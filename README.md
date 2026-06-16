@@ -29,11 +29,11 @@
 
 ### Presets
 
-Ships with 4 [presets](/presets/) as full visual systems.
+Ships with 4 full visual systems.
 
-Each one is a complete preset with its own palette and [wallpaper](/wallpapers/).
+Each one is a complete [preset](/presets/) with its own palette and [wallpaper](/wallpapers/).
 
-Fully configurable, so you can [create your own](#creating-your-own).
+Fully configurable, so you can also [create your own](#creating-your-own).
 
 |                                                             **Gilded**                                                              |                                                             **Blush**                                                              |
 | :---------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: |
@@ -79,6 +79,10 @@ For maximum compatibility and reliability, **H.264-encoded MP4** is strongly rec
 > [!IMPORTANT]
 > It **does not** ship **video assets** by default. You're free to use **your own** video files.
 
+## Guide
+
+Want a fast mental model of what this is, what SDDM is, what it changes, and how recovery works? Check out the [guide](./docs/guide.md).
+
 ## Installation
 
 Clone the repo, then run the installer from the repo root.
@@ -89,16 +93,19 @@ cd thyx
 ./scripts/install
 ```
 
-For non-interactive installs, pass `--yes`.
+For non interactive installs, pass `--yes`.
 
 ```bash
 ./scripts/install --yes
 ```
 
-> [!NOTE]
-> The installer is local, explicit, and idempotent. It validates the theme tree, checks required commands and runtime packages, stages the install atomically, and keeps the current session alive.
+This will auto install and setup everything for **Debian** based systems (**Ubuntu**, **Zorin**, **Mint**, **Pop**), **Arch**, **Fedora**, **openSUSE**, **Alpine**, and **Gentoo**.
 
-During setup, Thyx prints a [plan](https://developer.hashicorp.com/terraform/cli/commands/plan), asks for confirmation and sudo, then installs end-to-end and logs the run.
+If you use another distro, have a look at the generic [package contract](/scripts/data/deps.generic) and map it through your package manager.
+
+The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, and keeps the current session alive.
+
+During setup, it prints a [plan](https://developer.hashicorp.com/terraform/cli/commands/plan), asks for confirmation and sudo, then installs end to end and logs the run.
 
 <details>
 <summary><strong>What the installer does</strong></summary>
@@ -107,28 +114,26 @@ During setup, Thyx prints a [plan](https://developer.hashicorp.com/terraform/cli
 
 It runs in this order.
 
-- validates that the current repo is thyx.
-- verifies required commands, SDDM greeter, and declared runtime packages
-- prints a plan before touching anything
-- asks for confirmation and sudo
-- stages the repo into `/usr/share/sddm/themes/.thyx.stage.<timestamp>`
-- installs the theme atomically into `/usr/share/sddm/themes/thyx`
-- installs bundled fonts into `/usr/local/share/fonts/thyx`
-- refreshes the font cache
-- selects Thyx through one owned SDDM drop-in at `/etc/sddm.conf.d/zzzzzz-thyx.conf`
-- enables SDDM when `systemctl` exists
-- verifies the installed theme, drop-in, effective SDDM theme, and fonts
-- prints a safe greeter test command
-- logs everything to `~/.cache/thyx/thyx-install-*.log`
+1. validates that the current repo is thyx
+2. detects the distro
+3. selects the matching manifest from [`scripts/data/deps.map`](./scripts/data/deps.map)
+4. installs missing runtime packages from the selected manifest
+5. verifies required commands, SDDM greeter, and declared runtime packages
+6. prints a plan before touching the theme path
+7. asks for confirmation and sudo
+8. stages the repo into `/usr/share/sddm/themes/.thyx.stage.<timestamp>`
+9. installs the theme atomically into `/usr/share/sddm/themes/thyx`
+10. installs bundled fonts into `/usr/local/share/fonts/thyx`
+11. refreshes the font cache
+12. selects Thyx through one owned SDDM drop in at `/etc/sddm.conf.d/zzzzzz-thyx.conf`
+13. enables SDDM when `systemctl` exists
+14. verifies the installed theme, drop in, effective SDDM theme, and fonts
+15. prints a safe greeter test command
+16. logs everything to `~/.cache/thyx/thyx-install-*.log`
 
-The installer checks the required packages. If something is missing, it prints the matching install hint for Debian/Ubuntu, Arch, Fedora, and a generic package list to install with your distro.
-
-After installation, the theme lives at `/usr/share/sddm/themes/thyx`. This is where SDDM loads it from.
+After installation, the theme is at `/usr/share/sddm/themes/thyx`. This is where SDDM loads it from.
 
 </details>
-
-> [!TIP]
-> Want a fast mental model of what this is, what SDDM is, what it changes, and how recovery works? Check out the [guide](./docs/guide.md).
 
 ## Uninstallation
 
