@@ -27,9 +27,11 @@
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/160c90cf-a557-4d6b-ae78-9cb2703e5a11" />
 
-### Presets
+## Presets
 
-Ships with 4 full visual systems.
+Ships with 5 total full visual systems.
+
+4 static, and 1 dynamic.
 
 Each one is a complete [preset](/presets/) with its own palette and [background](/backgrounds/).
 
@@ -43,7 +45,7 @@ Fully configurable, so you can also [create your own](#creating-your-own).
 | :------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------: |
 | <img src="https://github.com/user-attachments/assets/d0863369-cff9-40da-b516-554b149fcb6a" width="100%" height="240" alt="Malachite"/> | <img src="https://github.com/user-attachments/assets/256fc98a-fcbe-410e-b1ae-7d400e25ad66" width="100%" height="240" alt="Sakura"/> |
 
-### Dynamic backgrounds
+### Dynamic Preset (Cinder)
 
 But of course.
 
@@ -76,20 +78,15 @@ For maximum compatibility and reliability, **H.264-encoded MP4** is strongly rec
 
 </details>
 
-> [!IMPORTANT]
-> It **does not** ship **video assets** by default. You're free to use **your own** video files.
-
 ## Guide
 
-Want a fast mental model of what this is, what SDDM is, what it changes, and how recovery works? Check out the [guide](./docs/guide.md).
+Want a fast mental model of what this is, what SDDM is, what it changes, and how recovery works? Read [this](./docs/guide.md).
 
 ## Installation
 
 Clone the repo, then run the installer from the repo root.
 
 ```bash
-git clone https://github.com/rccyx/thyx.git
-cd thyx
 ./scripts/install
 ```
 
@@ -101,26 +98,27 @@ For non interactive installs, pass `--yes`.
 
 The installer will install and setup everything for the following (through the manifests in [`scripts/data`](./scripts/data/)):
 
-- **Debian**
-  - Bookworm
-  - Trixie
-  - Forky
-  - Sid
+- **Arch**
+
+- **Fedora**
 
 - **Ubuntu**
   - Jammy / 22.04
   - Noble / 24.04
   - Resolute / 26.04
 
-  - **Linux Mint**
-  - **Pop!\_OS**
-  - **Zorin**
+- **Debian**
+  - Bookworm
+  - Trixie
+  - Forky
+  - Sid
 
-  - **Arch**
-  - **Fedora**
-  - **openSUSE Tumbleweed**
-  - **Alpine Edge**
-  - **Gentoo**
+- **Linux Mint**
+- **Pop!\_OS**
+- **Zorin**
+- **openSUSE Tumbleweed**
+- **Gentoo**
+- **Alpine Edge**
 
 If you use another distro, have a look at the generic [package contract](/scripts/data/deps.generic) and map it through your package manager.
 
@@ -146,7 +144,7 @@ It runs in this order.
 9. removes the previous fixed rollback path at `/usr/share/sddm/themes/.thyx.previous` if exists
 10. creates a fresh stage directory at `/usr/share/sddm/themes/.thyx.stage`
 11. copies the repo into the stage directory with `rsync --delete`
-12. strips repo-only files from the staged install:
+12. strips dev-only files from the staged install:
     - `.git/`
     - `.github/`
     - `justfile`
@@ -227,7 +225,7 @@ sudo systemctl restart sddm
 ```
 
 > [!WARNING]
-> This logs you out!
+> Restarting SDDM logs you out of your session!
 
 Or reboot.
 
