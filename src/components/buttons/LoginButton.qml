@@ -20,6 +20,19 @@ Rectangle {
 
     property alias authenticateBtn: focusProxy
 
+    readonly property int animationDuration: Number(config.AnimationDuration || 80)
+    readonly property int animationEasing: {
+        switch (config.AnimationEasing) {
+        case "OutCubic":
+            return Easing.OutCubic;
+        case "OutBack":
+            return Easing.OutBack;
+        case "OutQuart":
+        default:
+            return Easing.OutQuart;
+        }
+    }
+
     readonly property bool canLogin: {
         const u = String(usernameField.text || "");
         const p = String(passwordField.text || "");
@@ -32,7 +45,6 @@ Rectangle {
     }
 
     function doLogin() {
-        // gate visuals, but stay interactive regardless.
         if (!canLogin)
             return;
 
@@ -49,7 +61,6 @@ Rectangle {
         onTriggered: {
             if (config.AutoFingerprintOnLoad == "true" || config.AutoFingerprintOnLoad === true) {
                 const userName = normalizedUser();
-                // fingerprint login intentionally allows an empty password
                 sddm.login(userName, "", authenticationControl.environmentIndex);
             }
         }
@@ -89,8 +100,12 @@ Rectangle {
         width: parent.width
         anchors.centerIn: parent
         radius: 24
-        opacity: 1.0
-        color: config.LoginButtonBackgroundColor
+        opacity: 1
+        color: baseColor
+
+        readonly property color baseColor: config.LoginButtonBackgroundColor || "#f47419"
+        readonly property color hoverColor: config.HoverLoginButtonBackgroundColor || "#ff9226"
+        readonly property color pressedColor: Qt.darker(hoverColor, 1.18)
 
         MouseArea {
             id: authClickArea
@@ -114,36 +129,35 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
         }
 
-        Behavior on color {
-            ColorAnimation {
-                duration: config.AnimationDuration || 80
-                easing.type: {
-                    switch (config.AnimationEasing) {
-                    case "OutCubic":
-                        return Easing.OutCubic;
-                    case "OutBack":
-                        return Easing.OutBack;
-                    case "OutQuart":
-                    default:
-                        return Easing.OutQuart;
-                    }
-                }
-            }
-        }
-
         states: [
             State {
                 name: "buttonPressed"
                 when: authClickArea.pressed
                 PropertyChanges {
-                    authBtn.color: Qt.darker(config.HoverLoginButtonBackgroundColor, 1.2)
+                    target: authBtn
+                    color: authBtn.pressedColor
                 }
             },
             State {
                 name: "buttonHovered"
                 when: authClickArea.containsMouse && !authClickArea.pressed
                 PropertyChanges {
-                    authBtn.color: config.HoverLoginButtonBackgroundColor
+                    target: authBtn
+                    color: authBtn.hoverColor
+                }
+            }
+        ]
+
+        transitions: [
+            Transition {
+                from: "*"
+                to: "*"
+
+                ColorAnimation {
+                    target: authBtn
+                    property: "color"
+                    duration: authenticationControl.animationDuration
+                    easing.type: authenticationControl.animationEasing
                 }
             }
         ]
