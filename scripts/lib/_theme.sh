@@ -7,65 +7,62 @@ _thyx_source_has_fonts() {
   find -L "${fonts_src}" -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print -quit | grep -q .
 }
 
-_thyx_install_theme_atomic() {
-  local parent
-  local stage
-  local backup
+_thyx_remove_theme_staging() {
+  _thyx_remove_one "${THYX_THEME_STAGE}"
+  _thyx_remove_one "${THYX_THEME_PREVIOUS}"
+}
 
+_thyx_install_theme_atomic() {
   _thyx_step "theme"
   _thyx_validate_repo_tree "${THYX_REPO_DIR}"
 
-  parent="$(dirname "${THYX_THEME_DST}")"
-  stage="${parent}/.${THYX_THEME_ID}.stage.${THYX_TIMESTAMP}"
-  backup="${parent}/.${THYX_THEME_ID}.bak.${THYX_TIMESTAMP}"
-
-  _thyx_info "staging to: ${stage}"
-  _thyx_remove_one "${stage}"
-  _thyx_run mkdir -p -- "${stage}"
+  _thyx_info "staging to: ${THYX_THEME_STAGE}"
+  _thyx_remove_theme_staging
+  _thyx_run mkdir -p -- "${THYX_THEME_STAGE}"
 
   _thyx_run rsync -a --delete \
     --exclude '.git/' \
     --exclude '.github/' \
-    --exclude '.agents/' \
-    --exclude '.codex/' \
+    --exclude 'assets/' \
+    --exclude 'docs/' \
+    --exclude 'scripts/' \
+    --exclude 'fonts/' \
+    --exclude 'README.md' \
     --exclude 'justfile' \
     --exclude '.qmllint.ini' \
-    "${THYX_REPO_DIR}/" "${stage}/"
+    "${THYX_REPO_DIR}/" "${THYX_THEME_STAGE}/"
 
-  _thyx_validate_repo_tree "${stage}"
+  _thyx_validate_repo_tree "${THYX_THEME_STAGE}"
 
   _thyx_info "activating: ${THYX_THEME_DST}"
-  _thyx_remove_one "${backup}"
 
   if [ -d "${THYX_THEME_DST}" ]; then
-    _thyx_run mv -- "${THYX_THEME_DST}" "${backup}"
+    _thyx_run mv -- "${THYX_THEME_DST}" "${THYX_THEME_PREVIOUS}"
   fi
 
-  if ! _thyx_run mv -- "${stage}" "${THYX_THEME_DST}"; then
-    _thyx_restore_theme_backup "${backup}"
+  if ! _thyx_run mv -- "${THYX_THEME_STAGE}" "${THYX_THEME_DST}"; then
+    _thyx_restore_theme_previous
     return 1
   fi
 
   if ! ( _thyx_validate_repo_tree "${THYX_THEME_DST}" ); then
     _thyx_remove_one "${THYX_THEME_DST}"
-    _thyx_restore_theme_backup "${backup}"
+    _thyx_restore_theme_previous
     return 1
   fi
 
-  _thyx_remove_one "${backup}"
+  _thyx_remove_one "${THYX_THEME_PREVIOUS}"
   _thyx_ok "theme installed"
 }
 
-_thyx_restore_theme_backup() {
-  local backup="${1:?}"
-
-  if [ ! -e "${backup}" ] && [ ! -L "${backup}" ]; then
+_thyx_restore_theme_previous() {
+  if [ ! -e "${THYX_THEME_PREVIOUS}" ] && [ ! -L "${THYX_THEME_PREVIOUS}" ]; then
     return 0
   fi
 
   _thyx_warn "restoring previous theme"
   _thyx_remove_one "${THYX_THEME_DST}"
-  _thyx_run mv -- "${backup}" "${THYX_THEME_DST}"
+  _thyx_run mv -- "${THYX_THEME_PREVIOUS}" "${THYX_THEME_DST}"
 }
 
 _thyx_install_fonts() {
@@ -86,21 +83,15 @@ _thyx_install_fonts() {
     _thyx_run install -m 0644 -- "${font}" "${THYX_FONTS_DST}/$(basename "${font}")"
   done < <(find -L "${fonts_src}" -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0)
 
-  _thyx_run fc-cache -f >/dev/null 2>&1
+  _thyx_run fc-cache -r -f >/dev/null 2>&1
   _thyx_ok "fonts installed"
 }
 
 _thyx_remove_theme_files() {
-  local path
-
   _thyx_step "remove theme"
-  _thyx_remove_one "${THYX_THEME_DST}"
 
-  shopt -s nullglob
-  for path in "/usr/share/sddm/themes/.${THYX_THEME_ID}.stage."* "/usr/share/sddm/themes/.${THYX_THEME_ID}.bak."*; do
-    _thyx_remove_one "${path}"
-  done
-  shopt -u nullglob
+  _thyx_remove_one "${THYX_THEME_DST}"
+  _thyx_remove_theme_staging
 
   _thyx_ok "theme files removed"
 }
@@ -116,7 +107,7 @@ _thyx_remove_fonts() {
   fi
 
   if [ "${had_fonts}" -eq 1 ]; then
-    _thyx_run fc-cache -f >/dev/null 2>&1
+    _thyx_run fc-cache -r -f >/dev/null 2>&1
     _thyx_ok "fonts removed"
     return 0
   fi

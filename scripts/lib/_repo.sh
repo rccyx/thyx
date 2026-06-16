@@ -28,8 +28,8 @@ _thyx_validate_repo_tree() {
 
   [ "${theme_id}" = "${THYX_THEME_ID}" ] || _thyx_die "not ${THYX_THEME_ID}: Theme-Id=${theme_id:-missing} in ${meta}"
   [ "${name}" = "${THYX_THEME_ID}" ] || _thyx_die "not ${THYX_THEME_ID}: Name=${name:-missing} in ${meta}"
-  [ -n "${main_script}" ] || _thyx_die "MainScript missing in ${meta}"
-  [ -n "${config_file}" ] || _thyx_die "ConfigFile missing in ${meta}"
+  [ "${main_script}" = "src/Main.qml" ] || _thyx_die "MainScript is ${main_script:-missing}, expected src/Main.qml in ${meta}"
+  [ "${config_file}" = "theme.conf" ] || _thyx_die "ConfigFile is ${config_file:-missing}, expected theme.conf in ${meta}"
   [ -f "${root}/${main_script}" ] || _thyx_die "MainScript missing: ${root}/${main_script}"
   [ -f "${root}/${config_file}" ] || _thyx_die "ConfigFile missing: ${root}/${config_file}"
 }
