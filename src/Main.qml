@@ -20,12 +20,16 @@ Pane {
     readonly property var cfg: (typeof config !== "undefined" && config) ? config : ({})
     readonly property string formPos: String(cfg.FormPosition || "center")
     readonly property var sddmApi: (typeof sddm !== "undefined" && sddm) ? sddm : null
+    readonly property color startupColor: (cfg.StartupBackgroundColor && cfg.StartupBackgroundColor !== "") ? cfg.StartupBackgroundColor : "#000000"
 
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
 
-    palette.window: "transparent"
     palette.buttonText: cfg.HoverSystemButtonsIconsColor || "#ffffff"
+
+    background: Rectangle {
+        color: root.startupColor
+    }
 
     font {
         family: cfg.Font || font.family
@@ -42,6 +46,7 @@ Pane {
         Background {
             id: bg
             config: root.cfg
+            fallbackColor: root.startupColor
         }
 
         BlurEffect {
