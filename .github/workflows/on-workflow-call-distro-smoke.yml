@@ -153,9 +153,9 @@ jobs:
           test -f /usr/share/sddm/themes/thyx/metadata.desktop
           test -f /usr/share/sddm/themes/thyx/theme.conf
           test -f /usr/share/sddm/themes/thyx/src/Main.qml
-          test -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+          test -f /etc/sddm.conf
 
-          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf.d/zzzzzz-thyx.conf
+          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf
 
       - name: greeter loads theme
         if: ${{ matrix.greeter == true }}
@@ -197,16 +197,40 @@ jobs:
           set -euo pipefail
 
           test ! -d /usr/share/sddm/themes/thyx
-          test ! -f /etc/sddm.conf.d/zzzzzz-thyx.conf
+          test ! -d /usr/local/share/fonts/thyx
           test ! -e /etc/sddm.conf.thyx-back
 
-          shopt -s nullglob
-
-          for file in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
-            [ -f "${file}" ] || continue
-
-            if grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' "${file}"; then
-              echo "still selects thyx: ${file}" >&2
+          if [ -f /etc/sddm.conf ]; then
+            if grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf; then
+              echo "still selects thyx: /etc/sddm.conf" >&2
               exit 1
             fi
-          done
+          fi
+
+      - name: backup restore contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf /usr/share/sddm/themes/thyx
+          rm -rf /usr/local/share/fonts/thyx
+          rm -f /etc/sddm.conf /etc/sddm.conf.thyx-back
+
+          printf '[Theme]\nCurrent=breeze\n' >/etc/sddm.conf
+
+          bash ./scripts/install --yes
+
+          test -d /usr/share/sddm/themes/thyx
+          test -f /etc/sddm.conf
+          test -f /etc/sddm.conf.thyx-back
+
+          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf
+          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*breeze[[:space:]]*$' /etc/sddm.conf.thyx-back
+
+          bash ./scripts/uninstall --yes
+
+          test ! -d /usr/share/sddm/themes/thyx
+          test ! -d /usr/local/share/fonts/thyx
+          test ! -e /etc/sddm.conf.thyx-back
+
+          grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*breeze[[:space:]]*$' /etc/sddm.conf
