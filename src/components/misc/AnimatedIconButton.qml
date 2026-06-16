@@ -90,17 +90,9 @@ Rectangle {
             PropertyChanges {
                 iconColorOverlay.color: animatedIconButton.hoverIconColor
             }
-        },
-        State {
-            name: "focused"
-            when: animatedIconButton.activeFocus
-            PropertyChanges {
-                iconColorOverlay.color: animatedIconButton.hoverIconColor
-            }
         }
     ]
 
-    Keys.onReturnPressed: clickHandler.clicked()
-    Keys.onEnterPressed: clickHandler.clicked()
-    focus: true
+    Keys.onReturnPressed: animatedIconButton.clicked()
+    Keys.onEnterPressed: animatedIconButton.clicked()
 }

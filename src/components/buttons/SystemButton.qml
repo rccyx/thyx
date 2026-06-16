@@ -17,6 +17,15 @@ Rectangle {
 
     readonly property int iconSize: root.font.pointSize * 4.5
 
+    function activate() {
+        if (powerControl.idx === 0)
+            sddm.powerOff();
+        else if (powerControl.idx === 1)
+            sddm.reboot();
+        else if (powerControl.idx === 2)
+            sddm.suspend();
+    }
+
     Column {
         anchors.centerIn: parent
         spacing: 8
@@ -40,15 +49,7 @@ Rectangle {
                 }
             }
 
-            onClicked: {
-                powerControl.forceActiveFocus();
-                if (powerControl.idx === 0)
-                    sddm.powerOff();
-                else if (powerControl.idx === 1)
-                    sddm.reboot();
-                else if (powerControl.idx === 2)
-                    sddm.suspend();
-            }
+            onClicked: powerControl.activate()
         }
 
         Text {
@@ -96,26 +97,11 @@ Rectangle {
                     PropertyChanges {
                         labelText.color: Qt.darker(config.HoverSystemButtonsIconsColor, 1.2)
                     }
-                },
-                State {
-                    name: "labelFocused"
-                    when: iconButton.activeFocus
-                    PropertyChanges {
-                        labelText.color: config.HoverSystemButtonsIconsColor
-                    }
                 }
             ]
         }
     }
 
-    Keys.onReturnPressed: iconButton.clicked()
-    Keys.onEnterPressed: iconButton.clicked()
-
-    onActiveFocusChanged: {
-        if (activeFocus) {
-            iconButton.forceActiveFocus();
-        }
-    }
-
-    focus: true
+    Keys.onReturnPressed: powerControl.activate()
+    Keys.onEnterPressed: powerControl.activate()
 }
