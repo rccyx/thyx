@@ -31,7 +31,7 @@
 
 Ships with 4 full visual systems.
 
-Each one is a complete [preset](/presets/) with its own palette and [wallpaper](/wallpapers/).
+Each one is a complete [preset](/presets/) with its own palette and [background](/backgrounds/).
 
 Fully configurable, so you can also [create your own](#creating-your-own).
 
@@ -339,12 +339,12 @@ All settings are in `theme.conf`. You can safely test edits using [`./scripts/pr
 
 ### Basic settings
 
-| Setting                            | Description                                | Example                   |
-| ---------------------------------- | ------------------------------------------ | ------------------------- |
-| `Font`                             | System font family                         | `"Plus Jakarta Sans"`     |
-| `FontSize`                         | Base font size in points                   | `"12"`                    |
-| `Background`                       | Wallpaper or video path, relative to theme | `"wallpapers/gilded.jpg"` |
-| `AllowUppercaseLettersInUsernames` | Username capitalization behavior           | `"true"`, `"false"`       |
+| Setting                            | Description                                | Example                    |
+| ---------------------------------- | ------------------------------------------ | -------------------------- |
+| `Font`                             | System font family                         | `"Plus Jakarta Sans"`      |
+| `FontSize`                         | Base font size in points                   | `"12"`                     |
+| `Background`                       | Wallpaper or video path, relative to theme | `"backgrounds/gilded.jpg"` |
+| `AllowUppercaseLettersInUsernames` | Username capitalization behavior           | `"true"`, `"false"`        |
 
 ### Time and date display
 
@@ -430,7 +430,7 @@ AnimationEasing="OutCubic"
 ### Use a video background
 
 ```ini
-Background="wallpapers/my-video.mp4"
+Background="backgrounds/my-video.mp4"
 ```
 
 Video backgrounds use the same `Background` setting as image backgrounds.
