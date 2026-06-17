@@ -13,9 +13,6 @@
     <a href="https://github.com/rccyx/thyx">
     <img src="https://img.shields.io/github/repo-size/rccyx/thyx?style=for-the-badge&color=black&labelColor=111111&logo=github&logoColor=white" alt="Size"/>
   </a>
-  <a href="https://github.com/rccyx/thyx/releases">
-    <img src="https://img.shields.io/github/v/release/rccyx/thyx?style=for-the-badge&color=black&labelColor=111111&logo=git&logoColor=white" alt="Version"/>
-  </a>
   <a href="https://github.com/rccyx/thyx/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-black?logo=mit&logoColor=white&style=for-the-badge&labelColor=111111" alt="License: MIT"/>
   </a>
@@ -23,10 +20,8 @@
 
 </div>
 
-## Preview
-
 <div align="center">
-  <video title="demo" src="https://github.com/user-attachments/assets/87deecf7-40d6-4570-a520-0a81a7622501" width="100%" controls>
+  <video title="demo" src="https://github.com/user-attachments/assets/85eaaf53-369d-4301-bc83-29367407abb7" width="100%" controls>
     Your browser does not support the video tag.
   </video>
 </div>
@@ -88,7 +83,7 @@ For maximum compatibility and reliability, **H.264-encoded MP4** is strongly rec
 
 ## Guide
 
-Want a fast mental model of what this is, what SDDM is, what it changes, and how recovery works? Read [this](./docs/guide.md).
+Want a fast mental model of what this is, what SDDM is, and how recovery works? Read [this](./docs/guide.md).
 
 ## Installation
 
@@ -128,11 +123,11 @@ The installer will install and setup everything for the following (through the m
 - **Gentoo**
 - **Alpine Edge**
 
-If you use another distro, have a look at the generic [package contract](/scripts/data/deps.generic) and map it through your package manager.
-
 The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, writes the SDDM theme selection, and keeps the current session alive.
 
 During setup, it prints the exact plan, asks for confirmation and sudo, installs end to end, and logs the run.
+
+If you use another distro, have a look at the generic [package contract](/scripts/data/deps.generic) and map it through your package manager. The same install can be done manually by following the same steps of:
 
 <details>
 <summary><strong>What the installer does</strong></summary>
@@ -174,8 +169,6 @@ It runs in this order.
 26. logs everything to `~/.cache/thyx/thyx-install-*.log`
 
 After installation, the theme is at `/usr/share/sddm/themes/thyx`. This is where SDDM loads it from.
-
-The same install can be done manually by following the same steps.
 
 </details>
 
@@ -239,7 +232,7 @@ Or reboot.
 
 ## Preview (no logout)
 
-From the repo, run:
+You can safely test edits using the preview command so you don’t get locked out and have to [recover](./docs/guide.md#recovery-protocol) via TTY.
 
 ```bash
 ./scripts/preview
@@ -249,18 +242,31 @@ Runs the SDDM greeter in test mode. Your session is untouched.
 
 Close the window when done (your compositor’s normal close shortcut, for example `Alt+Q` on Hyprland).
 
-### Using a preset
+## Configuration guide
 
-All settings live in `theme.conf`. Edit, preview, repeat.
+All settings are in `theme.conf`. Edit, preview, repeat.
+
+### Using a preset
 
 From `/usr/share/sddm/themes/thyx`, copy any preset config from `presets/` over the main `theme.conf`.
 
 ```bash
 cp presets/malachite.conf theme.conf
+```
+
+Preview it
+
+```bash
 ./scripts/preview
 ```
 
-When satisfied, restart SDDM or reboot.
+When satisfied, restart SDDM
+
+```bash
+sudo systemctl restart sddm
+```
+
+Or reboot to take effect.
 
 ### Creating your own
 
@@ -297,7 +303,7 @@ ConfigFile=presets/sakura.conf
 Save the file, then restart SDDM or reboot.
 
 > [!TIP]
-> You can wire a shell function or keybinds to switch presets instantly. I personally use `Alt + R` to rotate the login screen and desktop matching themes.
+> You can wire a shell function or keybinds to switch presets instantly. I personally use `Alt + R` to rotate the login screen and matching [desktop](https://github.com/rccyx/osyx) themes.
 
 ## Fonts
 
@@ -307,12 +313,6 @@ The `Font` setting in `theme.conf` must match the font family name exactly as yo
 
 ```ini
 Font="Plus Jakarta Sans"
-```
-
-Confirm availability:
-
-```bash
-fc-list -f "%{family}\n" | grep -i "Plus Jakarta Sans" || true
 ```
 
 ### Switching fonts
@@ -333,15 +333,11 @@ For example, if you have `Inter` already installed:
 Font="Inter"
 ```
 
-After changing fonts, rebuild the font cache if needed:
+After changing fonts, rebuild the font cache:
 
 ```bash
 sudo fc-cache -f -v
 ```
-
-## Configuration guide
-
-All settings are in `theme.conf`. You can safely test edits using [`./scripts/preview`](/scripts/preview) so you don’t get locked out and have to [recover](./docs/guide.md#recovery-protocol) via TTY.
 
 ### Basic settings
 
@@ -454,11 +450,11 @@ When enabled, it automatically calls PAM’s fingerprint check on load and logs 
 If fingerprint isn’t configured or fails, the greeter falls back to password login normally.
 
 > [!IMPORTANT]
-> PAM must already be configured for fingerprints in `/etc/pam.d/sddm` with `pam_fprintd.so`.
+> PAM must already be [configured](https://wiki.archlinux.org/title/Fprint) for fingerprints in `/etc/pam.d/sddm` with `pam_fprintd.so`.
 
 ## Issues
 
-Having issues? Read [this](./.github/ISSUES.md).
+Having issues? Read [this](./.github/ISSUES.md) first.
 
 ## License
 
