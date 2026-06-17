@@ -1,14 +1,13 @@
-name: distro-smoke
+name: install-uninstall
 
 on:
-  workflow_dispatch:
   workflow_call:
 
 permissions:
   contents: read
 
 jobs:
-  smoke:
+  install-uninstall:
     runs-on: ubuntu-latest
 
     strategy:
@@ -20,6 +19,7 @@ jobs:
 
           - id: debian-trixie
             image: debian:trixie
+            greeter: true
 
           - id: debian-testing
             image: debian:testing
@@ -50,7 +50,7 @@ jobs:
           - id: alpine-edge
             image: alpine:edge
 
-    name: smoke (${{ matrix.id }})
+    name: install uninstall (${{ matrix.id }})
 
     container:
       image: ${{ matrix.image }}
@@ -62,52 +62,61 @@ jobs:
       DEBIAN_PRIORITY: critical
       APT_LISTCHANGES_FRONTEND: none
       GIT_TERMINAL_PROMPT: "0"
+      EXPECT_ID: ${{ matrix.expect_id || '' }}
+      LOAD_GREETER: ${{ matrix.greeter == true && 'true' || 'false' }}
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: show identity
-        shell: sh
+      - name: show distro identity
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
 
           cat /etc/os-release
 
-          if [ -n "${{ matrix.expect_id }}" ]; then
-            grep -q "^ID=${{ matrix.expect_id }}$" /etc/os-release
+          if [ -n "${EXPECT_ID}" ]; then
+            grep -q "^ID=${EXPECT_ID}$" /etc/os-release
           fi
 
-      - name: base dependencies
-        shell: sh
+      - name: install base dependencies
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
 
-          PKGS="sudo ca-certificates bash git"
+          pkgs="sudo ca-certificates bash git"
+          missing=false
 
-          if command -v git >/dev/null 2>&1; then
+          for tool in sudo bash git; do
+            if ! command -v "${tool}" >/dev/null 2>&1; then
+              missing=true
+            fi
+          done
+
+          if [ "${missing}" = false ]; then
             exit 0
           fi
 
           if command -v apt-get >/dev/null 2>&1; then
             apt-get update
-            apt-get install -y --no-install-recommends $PKGS
+            apt-get install -y --no-install-recommends ${pkgs}
           elif command -v dnf >/dev/null 2>&1; then
-            dnf -y install $PKGS
+            dnf -y install ${pkgs}
           elif command -v pacman >/dev/null 2>&1; then
-            pacman -Syu --noconfirm --needed $PKGS
+            pacman -Syu --noconfirm --needed ${pkgs}
           elif command -v zypper >/dev/null 2>&1; then
             zypper --non-interactive refresh
-            zypper --non-interactive install --no-recommends $PKGS
+            zypper --non-interactive install --no-recommends ${pkgs}
           elif command -v apk >/dev/null 2>&1; then
             apk update
-            apk add --no-cache $PKGS
+            apk add --no-cache ${pkgs}
           else
             echo "no supported package manager found" >&2
             exit 1
           fi
 
-      - name: apt container shim
+      - name: prepare apt container
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -140,11 +149,14 @@ jobs:
             fi
           done
 
-      - name: install
+      - name: install theme
         shell: bash
-        run: bash ./scripts/install --yes
+        run: |
+          set -euo pipefail
 
-      - name: verify install artifacts
+          bash ./scripts/install --yes
+
+      - name: verify installed theme artifacts
         shell: bash
         run: |
           set -euo pipefail
@@ -157,15 +169,31 @@ jobs:
 
           grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf
 
-      - name: greeter loads theme
-        if: ${{ matrix.greeter == true }}
+      - name: load greeter
         shell: bash
         run: |
           set -euo pipefail
 
-          pacman -Syu --noconfirm --needed xorg-server-xvfb dbus
+          if [ "${LOAD_GREETER}" != "true" ]; then
+            echo "greeter load disabled for this target"
+            exit 0
+          fi
 
-          greeter="$(command -v sddm-greeter-qt6 || command -v sddm-greeter || true)"
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y --no-install-recommends xvfb dbus dbus-x11
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Syu --noconfirm --needed xorg-server-xvfb dbus
+          else
+            echo "greeter load enabled on unsupported package manager" >&2
+            exit 1
+          fi
+
+          greeter="$(
+            command -v sddm-greeter-qt6 ||
+            command -v sddm-greeter ||
+            find /usr -type f \( -name sddm-greeter-qt6 -o -name sddm-greeter \) -print -quit
+          )"
 
           if [ -z "${greeter}" ]; then
             echo "sddm greeter not found" >&2
@@ -180,18 +208,27 @@ jobs:
           trap 'kill "${xvfb_pid}" >/dev/null 2>&1 || true' EXIT
           sleep 1
 
+          if command -v dbus-run-session >/dev/null 2>&1; then
+            runner="dbus-run-session --"
+          else
+            runner=""
+          fi
+
           set +e
-          timeout 8s env QT_QPA_PLATFORM=xcb "${greeter}" --test-mode --theme /usr/share/sddm/themes/thyx
+          ${runner} timeout 8s env QT_QPA_PLATFORM=xcb "${greeter}" --test-mode --theme /usr/share/sddm/themes/thyx
           code="$?"
           set -e
 
           [ "${code}" -eq 0 ] || [ "${code}" -eq 124 ]
 
-      - name: uninstall
+      - name: uninstall theme
         shell: bash
-        run: bash ./scripts/uninstall --yes
+        run: |
+          set -euo pipefail
 
-      - name: verify uninstall cleanup
+          bash ./scripts/uninstall --yes
+
+      - name: verify uninstalled theme artifacts
         shell: bash
         run: |
           set -euo pipefail
@@ -207,7 +244,7 @@ jobs:
             fi
           fi
 
-      - name: backup restore contract
+      - name: prepare backup restore state
         shell: bash
         run: |
           set -euo pipefail
@@ -218,16 +255,39 @@ jobs:
 
           printf '[Theme]\nCurrent=breeze\n' >/etc/sddm.conf
 
+      - name: install over existing theme selection
+        shell: bash
+        run: |
+          set -euo pipefail
+
           bash ./scripts/install --yes
 
+      - name: verify backup restore install
+        shell: bash
+        run: |
+          set -euo pipefail
+
           test -d /usr/share/sddm/themes/thyx
+          test -f /usr/share/sddm/themes/thyx/metadata.desktop
+          test -f /usr/share/sddm/themes/thyx/theme.conf
+          test -f /usr/share/sddm/themes/thyx/src/Main.qml
           test -f /etc/sddm.conf
           test -f /etc/sddm.conf.thyx-back
 
           grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$' /etc/sddm.conf
           grep -qE '^[[:space:]]*Current[[:space:]]*=[[:space:]]*breeze[[:space:]]*$' /etc/sddm.conf.thyx-back
 
+      - name: uninstall from backup restore state
+        shell: bash
+        run: |
+          set -euo pipefail
+
           bash ./scripts/uninstall --yes
+
+      - name: verify backup restore uninstall
+        shell: bash
+        run: |
+          set -euo pipefail
 
           test ! -d /usr/share/sddm/themes/thyx
           test ! -d /usr/local/share/fonts/thyx
