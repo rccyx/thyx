@@ -70,9 +70,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: show distro identity
-        shell: bash
+        shell: sh
         run: |
-          set -euo pipefail
+          set -eu
 
           cat /etc/os-release
 
@@ -81,9 +81,9 @@ jobs:
           fi
 
       - name: install base dependencies
-        shell: bash
+        shell: sh
         run: |
-          set -euo pipefail
+          set -eu
 
           pkgs="sudo ca-certificates bash git"
           missing=false
