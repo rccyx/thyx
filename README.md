@@ -150,8 +150,9 @@ It runs in this order.
 12. strips dev-only files from the staged install:
     - `.git/`
     - `.github/`
-    - `justfile`
+    - `fonts/` # installed system wide
     - `.qmllint.ini`
+    - ...
 
 13. validates the staged theme before activation
 14. moves an existing `/usr/share/sddm/themes/thyx` to `/usr/share/sddm/themes/.thyx.previous` during activation

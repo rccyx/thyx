@@ -24,11 +24,8 @@ _thyx_install_theme_atomic() {
     --exclude '.git/' \
     --exclude '.github/' \
     --exclude 'assets/' \
-    --exclude 'docs/' \
-    --exclude 'scripts/' \
     --exclude 'fonts/' \
     --exclude 'README.md' \
-    --exclude 'justfile' \
     --exclude '.qmllint.ini' \
     "${THYX_REPO_DIR}/" "${THYX_THEME_STAGE}/"
 
