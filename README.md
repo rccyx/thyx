@@ -20,11 +20,19 @@
 
 </div>
 
+## Demo
+
 <div align="center">
   <video title="demo" src="https://github.com/user-attachments/assets/85eaaf53-369d-4301-bc83-29367407abb7" width="100%" controls>
     Your browser does not support the video tag.
   </video>
 </div>
+
+## Matching Desktop
+
+This is actually part of my [workstation](https://github.com/rccyx/osyx), recently open sourced.
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e145667b-d2b6-435c-9800-f23ca4165767" />
 
 ## Presets
 
@@ -280,28 +288,6 @@ cp presets/my-custom.conf theme.conf
 ```
 
 Edit freely, keep as many presets as you want, and swap them by copying into `theme.conf`.
-
-### Switching presets via metadata
-
-If you’re already in an editor, you can point SDDM at a preset directly through [`metadata.desktop`](/metadata.desktop).
-
-```ini
-[SddmGreeterTheme]
-Theme-Id=thyx
-ConfigFile=presets/gilded.conf
-```
-
-Point `ConfigFile` to any preset in `presets/`.
-
-```ini
-ConfigFile=presets/blush.conf
-# or
-ConfigFile=presets/malachite.conf
-# or
-ConfigFile=presets/sakura.conf
-```
-
-Save the file, then restart SDDM or reboot.
 
 > [!TIP]
 > You can wire a shell function or keybinds to switch presets instantly. I personally use `Alt + R` to rotate the login screen and matching [desktop](https://github.com/rccyx/osyx) themes.

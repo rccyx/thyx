@@ -7,6 +7,17 @@ _thyx_source_has_fonts() {
   find -L "${fonts_src}" -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print -quit | grep -q .
 }
 
+_thyx_make_live_config_user_writable() {
+  local theme_conf="${THYX_THEME_DST}/theme.conf"
+
+  [ -f "${theme_conf}" ] || return 0
+  [ -n "${SUDO_UID:-}" ] || return 0
+  [ -n "${SUDO_GID:-}" ] || return 0
+  [ "${SUDO_UID}" != "0" ] || return 0
+
+  _thyx_run chown "${SUDO_UID}:${SUDO_GID}" -- "${theme_conf}"
+}
+
 _thyx_remove_theme_staging() {
   _thyx_remove_one "${THYX_THEME_STAGE}"
   _thyx_remove_one "${THYX_THEME_PREVIOUS}"
@@ -48,6 +59,7 @@ _thyx_install_theme_atomic() {
     return 1
   fi
 
+  _thyx_make_live_config_user_writable
   _thyx_remove_one "${THYX_THEME_PREVIOUS}"
   _thyx_ok "theme installed"
 }
