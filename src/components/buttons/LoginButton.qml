@@ -103,8 +103,8 @@ Rectangle {
         opacity: 1
         color: baseColor
 
-        readonly property color baseColor: config.LoginButtonBackgroundColor || "#f47419"
-        readonly property color hoverColor: config.HoverLoginButtonBackgroundColor || "#ff9226"
+        readonly property color baseColor: config.LoginButtonBackgroundColor
+        readonly property color hoverColor: config.HoverLoginButtonBackgroundColor
         readonly property color pressedColor: Qt.darker(hoverColor, 1.18)
 
         MouseArea {
@@ -134,16 +134,14 @@ Rectangle {
                 name: "buttonPressed"
                 when: authClickArea.pressed
                 PropertyChanges {
-                    target: authBtn
-                    color: authBtn.pressedColor
+                    authBtn.color: authBtn.pressedColor
                 }
             },
             State {
                 name: "buttonHovered"
                 when: authClickArea.containsMouse && !authClickArea.pressed
                 PropertyChanges {
-                    target: authBtn
-                    color: authBtn.hoverColor
+                    authBtn.color: authBtn.hoverColor
                 }
             }
         ]
