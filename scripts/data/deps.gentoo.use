@@ -2,5 +2,6 @@ x11-misc/sddm X elogind
 x11-libs/libxkbcommon X
 media-libs/libglvnd X
 sys-auth/pambase elogind
+sys-libs/zlib minizip
 dev-qt/qtmultimedia qml ffmpeg X
 dev-qt/qt5compat qml

@@ -30,9 +30,9 @@
 
 ## Matching Desktop
 
-This is actually part of my [workstation](https://github.com/rccyx/osyx), recently open sourced.
+This has been part of my personal [workstation](https://github.com/rccyx/osyx) for a while, fully open sourced!
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e145667b-d2b6-435c-9800-f23ca4165767" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a9cb1e77-1498-47d8-b9af-2bf0c213c34a" />
 
 ## Presets
 
@@ -115,9 +115,49 @@ The installer is atomic and idempotent and will auto setup everything with one c
 - **Linux Mint**
 - **Pop!\_OS**
 - **Zorin**
-- **openSUSE Tumbleweed**
+- **openSUSE**
 - **Gentoo**
-- **Alpine Edge**
+- **Alpine**
+
+<details>
+<summary><strong>Using NixOS?</strong></summary>
+
+<br/>
+
+Use the theme as a flake:
+
+```nix
+{
+  inputs = {
+    thyx.url = "github:rccyx/thyx";
+  };
+
+  outputs = { nixpkgs, thyx, ... }: {
+    nixosConfigurations.host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+
+      modules = [
+        thyx.nixosModules.default
+
+        {
+          services.displayManager.sddm.thyx.enable = true;
+          services.displayManager.sddm.wayland.enable = true;
+        }
+      ];
+    };
+  };
+}
+```
+
+Then rebuild.
+
+```bash
+sudo nixos-rebuild switch --flake .#host
+```
+
+That's it, don't run the next commands.
+
+</details>
 
 Simply run:
 
@@ -131,9 +171,6 @@ For non interactive installs, pass `--yes`.
 ```bash
 bash ./scripts/install --yes
 ```
-
-> [!IMPORTANT]
-> Using NixOS? It's supported, just read [docs/nix.md](./docs/nix.md). Don't run those commands:
 
 The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, writes the SDDM theme selection, and keeps the current session alive.
 
