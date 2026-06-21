@@ -32,7 +32,12 @@ jobs:
     if: needs.changes.outputs.non_docs == 'true'
     uses: ./.github/workflows/on-workflow-call-lint.yml
 
-  smoke-test:
+  nix-smoke:
+    needs: changes
+    if: needs.changes.outputs.non_docs == 'true'
+    uses: ./.github/workflows/on-workflow-call-nix.yml
+
+  distro-smoke:
     needs:
       - shellcheck
       - format
