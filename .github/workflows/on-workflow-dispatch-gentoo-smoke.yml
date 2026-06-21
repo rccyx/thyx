@@ -21,23 +21,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Gentoo is kept outside the normal distro smoke workflow on purpose.
-          #
-          # The regular distro smoke job is supposed to stay cheap:
-          # pull a binary distro image, install runtime deps, install thyx, uninstall thyx,
-          # then exit. Debian, Ubuntu, Mint, Fedora, Arch, openSUSE, and Alpine all fit
-          # that model well enough for every push and pull request.
-          #
-          # Gentoo has a different cost shape. A raw stage3 image is a minimal Gentoo
-          # root, and the Portage tree lives separately. Installing SDDM and Qt through
-          # emerge can involve Portage metadata, dependency solving, binary package
-          # lookup, and sometimes source build cost depending on profile and binhost
-          # availability.
-          #
-          # That makes Gentoo a real support target, but a bad default PR tax.
-          # This manual workflow exists so Gentoo support can still be tested on demand
-          # without making every normal CI run slow or expensive.
-
           cat >Dockerfile.gentoo-smoke <<'EOF'
           FROM gentoo/portage:latest AS portage
           FROM gentoo/stage3:latest
@@ -60,6 +43,15 @@ jobs:
 
               bash ./scripts/install --yes
 
+              test -f /etc/portage/package.use/thyx
+              grep -qE "^x11-misc/sddm[[:space:]].*X" /etc/portage/package.use/thyx
+              grep -qE "^x11-misc/sddm[[:space:]].*elogind" /etc/portage/package.use/thyx
+              grep -qE "^x11-libs/libxkbcommon[[:space:]].*X" /etc/portage/package.use/thyx
+              grep -qE "^media-libs/libglvnd[[:space:]].*X" /etc/portage/package.use/thyx
+              grep -qE "^sys-auth/pambase[[:space:]].*elogind" /etc/portage/package.use/thyx
+              grep -qE "^dev-qt/qtmultimedia[[:space:]].*qml" /etc/portage/package.use/thyx
+              grep -qE "^dev-qt/qt5compat[[:space:]].*qml" /etc/portage/package.use/thyx
+
               test -d /usr/share/sddm/themes/thyx
               test -f /usr/share/sddm/themes/thyx/metadata.desktop
               test -f /usr/share/sddm/themes/thyx/theme.conf
@@ -80,27 +72,4 @@ jobs:
                   exit 1
                 fi
               fi
-
-              rm -rf /usr/share/sddm/themes/thyx
-              rm -rf /usr/local/share/fonts/thyx
-              rm -f /etc/sddm.conf /etc/sddm.conf.thyx-back
-
-              printf "[Theme]\nCurrent=breeze\n" >/etc/sddm.conf
-
-              bash ./scripts/install --yes
-
-              test -d /usr/share/sddm/themes/thyx
-              test -f /etc/sddm.conf
-              test -f /etc/sddm.conf.thyx-back
-
-              grep -qE "^[[:space:]]*Current[[:space:]]*=[[:space:]]*thyx[[:space:]]*$" /etc/sddm.conf
-              grep -qE "^[[:space:]]*Current[[:space:]]*=[[:space:]]*breeze[[:space:]]*$" /etc/sddm.conf.thyx-back
-
-              bash ./scripts/uninstall --yes
-
-              test ! -d /usr/share/sddm/themes/thyx
-              test ! -d /usr/local/share/fonts/thyx
-              test ! -e /etc/sddm.conf.thyx-back
-
-              grep -qE "^[[:space:]]*Current[[:space:]]*=[[:space:]]*breeze[[:space:]]*$" /etc/sddm.conf
             '

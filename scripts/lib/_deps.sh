@@ -62,6 +62,7 @@ _thyx_install_runtime_deps() {
 
   manager="$(_thyx_package_manager)" || _thyx_die "no supported package manager found"
   _thyx_gentoo_portage_tree_required "${manager}"
+  _thyx_install_gentoo_use "${script_dir}" "${manager}"
   _thyx_missing_packages "${manifest}" missing
 
   if [ "${#missing[@]}" -eq 0 ]; then
@@ -81,6 +82,18 @@ _thyx_install_runtime_deps() {
   fi
 
   _thyx_ok "runtime packages installed"
+}
+
+_thyx_install_gentoo_use() {
+  local script_dir="${1:?}"
+  local manager="${2:?}"
+  local use_file="${script_dir}/data/deps.gentoo.use"
+
+  [ "${manager}" = "emerge" ] || return 0
+  [ -f "${use_file}" ] || _thyx_die "dependency manifest missing: ${use_file}"
+
+  _thyx_run mkdir -p /etc/portage/package.use
+  _thyx_run install -m 0644 -- "${use_file}" /etc/portage/package.use/thyx
 }
 
 _thyx_prepare_runtime_manifest() {
@@ -117,7 +130,7 @@ _thyx_require_one_command() {
 _thyx_require_commands_file() {
   local file="${1:?}" cmd
   [ -f "${file}" ] || _thyx_die "dependency manifest missing: ${file}"
-  
+
   while IFS= read -r cmd; do
     _thyx_require_command "${cmd}"
   done < <(_thyx_read_clean "${file}")
@@ -142,7 +155,7 @@ _thyx_require_runtime_packages() {
 
 _thyx_runtime_manifest() {
   local script_dir="${1:?}" manifest manager
-  
+
   manifest="$(_thyx_manifest_from_map "${script_dir}")"
   if [ -n "${manifest}" ]; then
     printf '%s\n' "${manifest}"
@@ -305,7 +318,7 @@ _thyx_print_supported_patterns() {
 
 _thyx_print_unsupported_distro() {
   local script_dir="${1:?}"
-  
+
   printf '\nunsupported distro\n'
   printf '  detected ID: %s\n' "$(_thyx_os_field ID || true)"
   printf '  detected VERSION_ID: %s\n' "$(_thyx_os_field VERSION_ID || true)"
