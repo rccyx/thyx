@@ -95,19 +95,7 @@ Want a fast mental model of what this is, what SDDM is, and how recovery works? 
 
 ## Installation
 
-Clone the repo, then run the installer from the repo root.
-
-```bash
-./scripts/install
-```
-
-For non interactive installs, pass `--yes`.
-
-```bash
-./scripts/install --yes
-```
-
-The installer will install and setup everything for the following (through the manifests in [`scripts/data`](./scripts/data/)):
+The installer is atomic and idempotent and will auto setup everything with one command for the following:
 
 - **Arch**
 
@@ -130,6 +118,22 @@ The installer will install and setup everything for the following (through the m
 - **openSUSE Tumbleweed**
 - **Gentoo**
 - **Alpine Edge**
+
+Simply run:
+
+```bash
+git clone https://github.com/rccyx/thyx && cd thyx
+bash ./scripts/install
+```
+
+For non interactive installs, pass `--yes`.
+
+```bash
+bash ./scripts/install --yes
+```
+
+> [!IMPORTANT]
+> Using NixOS? read [docs/nix.md](./docs/nix.md). Don't run those commands:
 
 The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, writes the SDDM theme selection, and keeps the current session alive.
 
