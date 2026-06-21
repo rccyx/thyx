@@ -33,8 +33,10 @@ jobs:
     uses: ./.github/workflows/on-workflow-call-lint.yml
 
   nix-smoke:
-    needs: changes
-    if: needs.changes.outputs.non_docs == 'true'
+    needs:
+      - shellcheck
+      - format
+      - lint
     uses: ./.github/workflows/on-workflow-call-nix.yml
 
   distro-smoke:
