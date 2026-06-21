@@ -17,29 +17,29 @@ jobs:
   changes:
     uses: ./.github/workflows/on-workflow-call-check-changes.yml
 
-  # shellcheck:
-  #   needs: changes
-  #   if: needs.changes.outputs.non_docs == 'true'
-  #   uses: ./.github/workflows/on-workflow-call-shell-check.yml
+  shellcheck:
+    needs: changes
+    if: needs.changes.outputs.non_docs == 'true'
+    uses: ./.github/workflows/on-workflow-call-shell-check.yml
 
-  # format:
-  #   needs: changes
-  #   if: needs.changes.outputs.non_docs == 'true'
-  #   uses: ./.github/workflows/on-workflow-call-format.yml
+  format:
+    needs: changes
+    if: needs.changes.outputs.non_docs == 'true'
+    uses: ./.github/workflows/on-workflow-call-format.yml
 
-  # lint:
-  #   needs: changes
-  #   if: needs.changes.outputs.non_docs == 'true'
-  #   uses: ./.github/workflows/on-workflow-call-lint.yml
+  lint:
+    needs: changes
+    if: needs.changes.outputs.non_docs == 'true'
+    uses: ./.github/workflows/on-workflow-call-lint.yml
 
   nix-smoke:
     needs: changes
     if: needs.changes.outputs.non_docs == 'true'
     uses: ./.github/workflows/on-workflow-call-nix.yml
 
-  # distro-smoke:
-  #   needs:
-  #     - shellcheck
-  #     - format
-  #     - lint
-  #   uses: ./.github/workflows/on-workflow-call-distro-smoke.yml
+  distro-smoke:
+    needs:
+      - shellcheck
+      - format
+      - lint
+    uses: ./.github/workflows/on-workflow-call-distro-smoke.yml
