@@ -103,6 +103,7 @@ main() {
   _thyx_parse_args "$@"
   _thyx_setup_log
   _thyx_validate_repo_tree "${THYX_REPO_DIR}"
+  [ "$(_thyx_os_field ID || true)" != "nixos" ] || _thyx_die "NixOS install is declarative; use docs/nix.md. The uninstaller is not supported on NixOS."
   _thyx_prepare_runtime_manifest "${script_dir}" >/dev/null
 
   _thyx_print_install_plan
