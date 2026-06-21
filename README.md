@@ -133,7 +133,7 @@ bash ./scripts/install --yes
 ```
 
 > [!IMPORTANT]
-> Using NixOS? read [docs/nix.md](./docs/nix.md). Don't run those commands:
+> Using NixOS? It's supported, just read [docs/nix.md](./docs/nix.md). Don't run those commands:
 
 The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, writes the SDDM theme selection, and keeps the current session alive.
 
