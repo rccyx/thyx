@@ -1,0 +1,56 @@
+name: nix
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  nix:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: install nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ github.token }}
+          enable_kvm: true
+          extra_nix_config: |
+            system-features = nixos-test benchmark big-parallel kvm
+
+      - name: flake check
+        run: nix flake check --print-build-logs
+
+      - name: build package
+        run: nix build .#thyx --print-build-logs
+
+      - name: nixos vm smoke
+        run: nix build .#checks.x86_64-linux.nixos-vm --print-build-logs
+
+      - name: verify package layout
+        run: |
+          set -euo pipefail
+
+          nix build .#thyx --print-build-logs
+
+          out="$(readlink -f result)"
+
+          test -f "${out}/share/sddm/themes/thyx/metadata.desktop"
+          test -f "${out}/share/sddm/themes/thyx/theme.conf"
+          test -f "${out}/share/sddm/themes/thyx/src/Main.qml"
+
+          test -d "${out}/share/sddm/themes/thyx/backgrounds"
+          test -d "${out}/share/sddm/themes/thyx/icons"
+          test -d "${out}/share/sddm/themes/thyx/presets"
+          test -d "${out}/share/sddm/themes/thyx/src"
+
+          test -f "${out}/share/fonts/truetype/thyx/PlusJakartaSans-VariableFont_wght.ttf"
+          test -f "${out}/share/fonts/truetype/thyx/PlusJakartaSans-Italic-VariableFont_wght.ttf"
