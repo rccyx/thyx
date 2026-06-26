@@ -28,12 +28,6 @@
   </video>
 </div>
 
-## Matching Desktop
-
-This has been part of my personal [workstation](https://github.com/rccyx/osyx) for a while, fully open sourced!
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a9cb1e77-1498-47d8-b9af-2bf0c213c34a" />
-
 ## Presets
 
 Ships with 5 total full visual systems.
@@ -42,7 +36,7 @@ Ships with 5 total full visual systems.
 
 Each one is a complete [preset](/presets/) with its own palette and [background](/backgrounds/).
 
-Fully configurable, so you can also [create your own](#creating-your-own).
+The design system allows infinite customization, so you can also [create your own](#creating-your-own).
 
 |                                                             **Gilded**                                                              |                                                             **Blush**                                                              |
 | :---------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: |
@@ -71,7 +65,7 @@ Video files can be used anywhere a background image is accepted and are rendered
 
 #### Supported formats
 
-- `mp4` (recommended)
+- `mp4`
 - `webm`
 - `mkv`
 - `mov`
@@ -80,12 +74,12 @@ Video files can be used anywhere a background image is accepted and are rendered
 
 For maximum compatibility and reliability, **H.264-encoded MP4** is strongly recommended.
 
-#### For best results
+**For optimal results:**
 
 - Keep videos short (~6–10 seconds)
 - No audio
 - Prefer 720p or 1080p
-- Designed to loop seamlessly
+- Designed to loop infinitely.
 
 </details>
 
@@ -95,36 +89,12 @@ Want a fast mental model of what this is, what SDDM is, and how recovery works? 
 
 ## Installation
 
-The installer is atomic and idempotent and will auto setup everything with one command for the following:
-
-- **Arch**
-
-- **Fedora**
-
-- **Ubuntu**
-  - Jammy / 22.04
-  - Noble / 24.04
-  - Resolute / 26.04
-
-- **Debian**
-  - Bookworm
-  - Trixie
-  - Forky
-  - Sid
-
-- **Linux Mint**
-- **Pop!\_OS**
-- **Zorin**
-- **openSUSE**
-- **Gentoo**
-- **Alpine**
+Using **NixOS?**
 
 <details>
-<summary><strong>Using NixOS?</strong></summary>
+<summary>Use the theme as a flake.</summary>
 
 <br/>
-
-Use the theme as a flake:
 
 ```nix
 {
@@ -155,14 +125,38 @@ Then rebuild.
 sudo nixos-rebuild switch --flake .#host
 ```
 
-That's it, don't run the next commands.
+That's it.
 
 </details>
+<br/>
 
-Simply run:
+Otherwise, the installer is atomic and idempotent and will auto setup everything with one command for the following:
+
+- **Arch**
+
+- **Fedora**
+
+- **Ubuntu**
+  - Jammy / 22.04
+  - Noble / 24.04
+  - Resolute / 26.04
+
+- **Debian**
+  - Bookworm
+  - Trixie
+  - Forky
+  - Sid
+
+- **Linux Mint**
+- **Pop!\_OS**
+- **Zorin**
+- **openSUSE**
+- **Gentoo**
+- **Alpine**
+
+Clone and run:
 
 ```bash
-git clone https://github.com/rccyx/thyx && cd thyx
 bash ./scripts/install
 ```
 
@@ -480,9 +474,9 @@ If fingerprint isn’t configured or fails, the greeter falls back to password l
 > [!IMPORTANT]
 > PAM must already be [configured](https://wiki.archlinux.org/title/Fprint) for fingerprints in `/etc/pam.d/sddm` with `pam_fprintd.so`.
 
-## Issues
+## Issues & Features
 
-Having issues? Read [this](./.github/ISSUES.md) first.
+Read [this](./.github/ISSUES.md) first.
 
 ## License
 
