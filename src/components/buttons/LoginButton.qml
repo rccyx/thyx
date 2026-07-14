@@ -20,50 +20,14 @@ Rectangle {
 
     property alias authenticateBtn: focusProxy
 
-    readonly property int animationDuration: Number(config.AnimationDuration || 80)
-    readonly property int animationEasing: {
-        switch (config.AnimationEasing) {
-        case "OutCubic":
-            return Easing.OutCubic;
-        case "OutBack":
-            return Easing.OutBack;
-        case "OutQuart":
-        default:
-            return Easing.OutQuart;
-        }
-    }
-
-    readonly property bool canLogin: {
-        const u = String(usernameField.text || "");
-        const p = String(passwordField.text || "");
-        return u.length > 0 && p.length > 0;
-    }
-
-    function normalizedUser() {
-        const raw = String(usernameField.text || "");
-        return (config.AllowUppercaseLettersInUsernames == "false") ? raw.toLowerCase() : raw;
-    }
-
     function doLogin() {
-        if (!canLogin)
+        const userName = String(usernameField.text || "");
+
+        if (userName.length === 0)
             return;
 
-        const userName = normalizedUser();
-        const pwd = String(passwordField.text || "");
-        sddm.login(userName, pwd, environmentIndex);
-    }
-
-    Timer {
-        id: fingerprintAutoStart
-        interval: 500
-        running: true
-        repeat: false
-        onTriggered: {
-            if (config.AutoFingerprintOnLoad == "true" || config.AutoFingerprintOnLoad === true) {
-                const userName = normalizedUser();
-                sddm.login(userName, "", authenticationControl.environmentIndex);
-            }
-        }
+        const password = String(passwordField.text || "");
+        sddm.login(userName, password, environmentIndex);
     }
 
     Connections {
@@ -154,8 +118,8 @@ Rectangle {
                 ColorAnimation {
                     target: authBtn
                     property: "color"
-                    duration: authenticationControl.animationDuration
-                    easing.type: authenticationControl.animationEasing
+                    duration: root.animationDuration
+                    easing.type: root.animationEasing
                 }
             }
         ]
