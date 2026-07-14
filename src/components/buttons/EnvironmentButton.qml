@@ -10,7 +10,6 @@ Rectangle {
     Layout.maximumHeight: root.height / 15
     color: "transparent"
 
-    property string formAlignment: config.FormPosition
     Layout.leftMargin: 0
 
     implicitHeight: root.font.pointSize
@@ -45,44 +44,8 @@ Rectangle {
 
             Behavior on color {
                 ColorAnimation {
-                    duration: config.AnimationDuration || 80
-                    easing.type: {
-                        switch (config.AnimationEasing) {
-                        case "OutCubic":
-                            return Easing.OutCubic;
-                        case "OutBack":
-                            return Easing.OutBack;
-                        case "OutQuart":
-                        default:
-                            return Easing.OutQuart;
-                        }
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            id: focusIndicator
-            anchors.bottom: parent.bottom
-            width: environmentDisplayText.implicitWidth
-            height: environmentContainer.activeFocus ? 2 : 0
-            color: "transparent"
-            anchors.horizontalCenter: parent.horizontalCenter
-
-            Behavior on height {
-                NumberAnimation {
-                    duration: config.AnimationDuration * 2 || 160
-                    easing.type: {
-                        switch (config.AnimationEasing) {
-                        case "OutCubic":
-                            return Easing.OutCubic;
-                        case "OutBack":
-                            return Easing.OutBack;
-                        case "OutQuart":
-                        default:
-                            return Easing.OutQuart;
-                        }
-                    }
+                    duration: root.animationDuration
+                    easing.type: root.animationEasing
                 }
             }
         }
@@ -101,21 +64,8 @@ Rectangle {
                 PropertyChanges {
                     environmentDisplayText.color: Qt.lighter(config.HoverEnvironmentButtonTextColor, 1.15)
                 }
-            },
-            State {
-                name: "sessionFocused"
-                when: environmentContainer.activeFocus
-                PropertyChanges {
-                    environmentDisplayText.color: config.HoverEnvironmentButtonTextColor
-                }
             }
         ]
-
-        Keys.onPressed: function (event) {
-            if ((event.key == Qt.Key_Left || event.key == Qt.Key_Right) && !environmentMenu.visible) {
-                environmentMenu.open();
-            }
-        }
     }
 
     ComboBox {
@@ -143,13 +93,13 @@ Rectangle {
                 id: menuContent
                 implicitHeight: contentHeight + 20
                 clip: true
-                model: environmentPicker.popup.visible ? environmentPicker.delegateModel : null
-                currentIndex: environmentPicker.highlightedIndex
+                model: environmentMenu.visible ? sessionModel : null
+                currentIndex: environmentPicker.currentIndex
 
                 delegate: Rectangle {
+                    x: 10
                     width: menuContent.width - 20
                     height: delegateText.implicitHeight + 12
-                    anchors.horizontalCenter: parent.horizontalCenter
                     color: menuContent.currentIndex === index ? config.DropdownSelectedBackgroundColor : "transparent"
                     radius: 4
 
@@ -184,7 +134,8 @@ Rectangle {
                     property: "opacity"
                     from: 0
                     to: 1
-                    duration: 200
+                    duration: root.animationDuration
+                    easing.type: root.animationEasing
                 }
             }
             exit: Transition {
@@ -192,7 +143,8 @@ Rectangle {
                     property: "opacity"
                     from: 1
                     to: 0
-                    duration: 150
+                    duration: root.animationDuration
+                    easing.type: root.animationEasing
                 }
             }
         }
