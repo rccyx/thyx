@@ -9,7 +9,6 @@ Rectangle {
 
     property var rootItem: null
     property var config: ({})
-    property string layoutPosition: String(config.FormPosition || "")
 
     Layout.leftMargin: 0
     implicitWidth: parent ? parent.width / 2 : 0

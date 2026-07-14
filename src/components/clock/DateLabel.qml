@@ -6,11 +6,11 @@ Text {
 
     property var rootItem: null
     property var config: ({})
-    readonly property var cfg: config || ({})
+    readonly property var cfg: config 
     readonly property int basePt: (rootItem && rootItem.font && rootItem.font.pointSize) ? rootItem.font.pointSize : 13
     readonly property string baseFamily: (rootItem && rootItem.font && rootItem.font.family) ? rootItem.font.family : (cfg.Font && cfg.Font !== "" ? cfg.Font : dateDisplay.font.family)
 
-    color: cfg.DateTextColor || "#ffffff"
+    color: cfg.DateTextColor 
 
     font {
         pointSize: basePt * 2
@@ -21,14 +21,12 @@ Text {
     renderType: Text.QtRendering
     horizontalAlignment: Text.AlignHCenter
 
+    readonly property var systemLocale: Qt.locale()
+
     function refreshDisplay() {
-        const today = new Date();
-        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const dayName = dayNames[today.getDay()];
-        const monthName = monthNames[today.getMonth()];
-        const dayNumber = today.getDate();
-        text = dayName + ", " + monthName + " " + dayNumber;
+        const rawFormat = typeof cfg.DateFormat === "undefined" ? "" : String(cfg.DateFormat);
+        const dateFormat = rawFormat === "long" ? Locale.LongFormat : (rawFormat !== "" ? rawFormat : Locale.ShortFormat);
+        text = new Date().toLocaleDateString(systemLocale, dateFormat);
     }
 
     Component.onCompleted: refreshDisplay()

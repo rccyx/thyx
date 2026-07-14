@@ -23,10 +23,9 @@ Text {
     readonly property var systemLocale: Qt.locale()
 
     function refreshDisplay() {
-        const now = new Date();
-        const hf = (typeof cfg.HourFormat === "undefined") ? "" : cfg.HourFormat;
-        const timeFormat = (hf == "long") ? Locale.LongFormat : (hf !== "" ? hf : Locale.ShortFormat);
-        text = now.toLocaleTimeString(systemLocale, timeFormat);
+        const rawFormat = typeof cfg.HourFormat === "undefined" ? "" : String(cfg.HourFormat);
+        const timeFormat = rawFormat === "long" ? Locale.LongFormat : (rawFormat !== "" ? rawFormat : Locale.ShortFormat);
+        text = new Date().toLocaleTimeString(systemLocale, timeFormat);
     }
 
     Component.onCompleted: refreshDisplay()
