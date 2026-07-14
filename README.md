@@ -128,7 +128,6 @@ sudo nixos-rebuild switch --flake .#host
 That's it.
 
 </details>
-<br/>
 
 Otherwise, the installer is atomic and idempotent and will auto setup everything with one command for the following:
 
@@ -363,12 +362,11 @@ sudo fc-cache -f -v
 
 ### Basic settings
 
-| Setting                            | Description                                | Example                    |
-| ---------------------------------- | ------------------------------------------ | -------------------------- |
-| `Font`                             | System font family                         | `"Plus Jakarta Sans"`      |
-| `FontSize`                         | Base font size in points                   | `"12"`                     |
-| `Background`                       | Wallpaper or video path, relative to theme | `"backgrounds/gilded.jpg"` |
-| `AllowUppercaseLettersInUsernames` | Username capitalization behavior           | `"true"`, `"false"`        |
+| Setting      | Description                                | Example                    |
+| ------------ | ------------------------------------------ | -------------------------- |
+| `Font`       | System font family                         | `"Plus Jakarta Sans"`      |
+| `FontSize`   | Base font size in points                   | `"12"`                     |
+| `Background` | Wallpaper or video path, relative to theme | `"backgrounds/gilded.jpg"` |
 
 ### Time and date display
 
@@ -397,8 +395,7 @@ sudo fc-cache -f -v
 
 - `DateTextColor` - Date display color
 - `TimeTextColor` - Time display color
-- `LoginFieldTextColor` - Username text
-- `PasswordFieldTextColor` - Password text
+- `InputFieldTextColor` - Username and password input text
 - `PlaceholderTextColor` - Input placeholder text
 - `LoginButtonTextColor` - Login button text
 - `EnvironmentButtonTextColor` - Environment selector text
@@ -406,19 +403,14 @@ sudo fc-cache -f -v
 
 #### Background colors
 
-- `FormBackgroundColor` - Login form background
-- `LoginFieldBackgroundColor` - Username input background
-- `PasswordFieldBackgroundColor` - Password input background
+- `InputFieldBackgroundColor` - Username and password input background
 - `LoginButtonBackgroundColor` - Login button background
 
 #### Dropdown colors
 
 - `DropdownTextColor` - Dropdown menu text
-- `DropdownSelectedTextColor` - Selected item text
 - `DropdownBackgroundColor` - Dropdown background
 - `DropdownSelectedBackgroundColor` - Selected item background
-- `DropdownBorderColor` - Dropdown border
-- `DropdownSelectedBorderColor` - Selected item border
 
 #### Hover effects
 
@@ -441,7 +433,7 @@ FormPosition="right"
 ```ini
 DateTextColor="#e0e0e0"
 TimeTextColor="#ffffff"
-FormBackgroundColor="#1a1a1a"
+InputFieldBackgroundColor="#400b0d12"
 ```
 
 ### Speed up animations
@@ -459,20 +451,9 @@ Background="backgrounds/my-video.mp4"
 
 Video backgrounds use the same `Background` setting as image backgrounds.
 
-## Automatic fingerprint login
+## Fingerprint authentication
 
-If your system uses PAM fingerprint authentication, it can start fingerprint login as soon as the screen appears.
-
-```ini
-AutoFingerprintOnLoad=true
-```
-
-When enabled, it automatically calls PAM’s fingerprint check on load and logs in as soon as the scan matches.
-
-If fingerprint isn’t configured or fails, the greeter falls back to password login normally.
-
-> [!IMPORTANT]
-> PAM must already be [configured](https://wiki.archlinux.org/title/Fprint) for fingerprints in `/etc/pam.d/sddm` with `pam_fprintd.so`.
+THYX does not expose a fingerprint setting. Authentication is handled by the machine's SDDM PAM configuration. When fingerprint authentication is configured, submit the login form with the password empty to start the fingerprint authentication path. A normal password is submitted through the same login action.
 
 ## Issues & Features
 
