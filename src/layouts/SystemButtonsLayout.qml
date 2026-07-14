@@ -11,7 +11,6 @@ RowLayout {
     Layout.preferredHeight: root.height / 8
     Layout.maximumHeight: root.height / 8
 
-    property string a2: config.FormPosition
     Layout.leftMargin: 0
 
     spacing: root.font.pointSize * 5

@@ -15,19 +15,6 @@ Rectangle {
     property bool circular: true
     property alias mouseArea: clickHandler
 
-    readonly property int animationDuration: config.AnimationDuration || 80
-    readonly property var animationEasing: {
-        switch (config.AnimationEasing) {
-        case "OutCubic":
-            return Easing.OutCubic;
-        case "OutBack":
-            return Easing.OutBack;
-        case "OutQuart":
-        default:
-            return Easing.OutQuart;
-        }
-    }
-
     signal clicked
     signal pressed
     signal released
@@ -69,8 +56,8 @@ Rectangle {
 
             Behavior on color {
                 ColorAnimation {
-                    duration: animatedIconButton.animationDuration
-                    easing.type: animatedIconButton.animationEasing
+                    duration: root.animationDuration
+                    easing.type: root.animationEasing
                 }
             }
         }

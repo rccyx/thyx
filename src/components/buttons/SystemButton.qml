@@ -68,18 +68,8 @@ Rectangle {
 
             Behavior on color {
                 ColorAnimation {
-                    duration: config.AnimationDuration || 80
-                    easing.type: {
-                        switch (config.AnimationEasing) {
-                        case "OutCubic":
-                            return Easing.OutCubic;
-                        case "OutBack":
-                            return Easing.OutBack;
-                        case "OutQuart":
-                        default:
-                            return Easing.OutQuart;
-                        }
-                    }
+                    duration: root.animationDuration
+                    easing.type: root.animationEasing
                 }
             }
 
