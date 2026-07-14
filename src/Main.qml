@@ -2,7 +2,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
-import SddmComponents 2.0 as SDDM
 
 import "components/clock"
 import "components/inputs"
@@ -19,16 +18,31 @@ Pane {
 
     readonly property var cfg: (typeof config !== "undefined" && config) ? config : ({})
     readonly property string formPos: String(cfg.FormPosition || "center")
-    readonly property var sddmApi: (typeof sddm !== "undefined" && sddm) ? sddm : null
-    readonly property color startupColor: (cfg.StartupBackgroundColor && cfg.StartupBackgroundColor !== "") ? cfg.StartupBackgroundColor : "#000000"
+    readonly property int animationDuration: {
+        const value = Number(cfg.AnimationDuration);
+
+        if (isNaN(value) || value < 0)
+            return 80;
+
+        return Math.round(value);
+    }
+    readonly property int animationEasing: {
+        switch (String(cfg.AnimationEasing || "OutQuart")) {
+        case "OutCubic":
+            return Easing.OutCubic;
+        case "OutBack":
+            return Easing.OutBack;
+        case "OutQuart":
+        default:
+            return Easing.OutQuart;
+        }
+    }
 
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
 
-    palette.buttonText: cfg.HoverSystemButtonsIconsColor || "#ffffff"
-
     background: Rectangle {
-        color: root.startupColor
+        color: "#000000"
     }
 
     font {
@@ -46,23 +60,13 @@ Pane {
         Background {
             id: bg
             config: root.cfg
-            fallbackColor: root.startupColor
+            fallbackColor: "#000000"
         }
 
         BlurEffect {
             id: blurOverlay
             sourceItem: bg.imageItem
             config: root.cfg
-        }
-
-        Rectangle {
-            id: formBackground
-            anchors.fill: form
-            anchors.centerIn: form
-            z: 0.9
-            color: root.cfg.FormBackgroundColor || "transparent"
-            visible: false
-            opacity: 1
         }
 
         ColumnLayout {
@@ -81,10 +85,6 @@ Pane {
                 if (root.formPos === "right")
                     return parent.width - width;
                 return (parent.width - width) / 2;
-            }
-
-            SDDM.TextConstants {
-                id: textConstants
             }
 
             Clock {
@@ -106,7 +106,7 @@ Pane {
 
                 UsernameInput {
                     id: usernameInput
-                    nextDown: passwordInput.password
+                    nextDown: passwordInput.input
                 }
 
                 PasswordField {
@@ -116,17 +116,9 @@ Pane {
 
                 LoginButton {
                     id: loginButton
-                    usernameField: usernameInput.username
-                    passwordField: passwordInput.password
+                    usernameField: usernameInput.input
+                    passwordField: passwordInput.input
                     environmentIndex: environmentButton.currentIndex
-                }
-
-                Connections {
-                    target: root.sddmApi
-                    function onLoginSucceeded() {
-                    }
-                    function onLoginFailed() {
-                    }
                 }
             }
 
