@@ -30,9 +30,9 @@
 
 ## Presets
 
-Ships with 5 total full visual systems.
+Ships with 7 total full visual systems.
 
-4 static, and 1 dynamic.
+6 static, and 1 dynamic.
 
 Each one is a complete [preset](/presets/) with its own palette and [background](/backgrounds/).
 
@@ -46,7 +46,7 @@ The design system allows infinite customization, so you can also [create your ow
 | :------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------: |
 | <img src="https://github.com/user-attachments/assets/d0863369-cff9-40da-b516-554b149fcb6a" width="100%" height="240" alt="Malachite"/> | <img src="https://github.com/user-attachments/assets/256fc98a-fcbe-410e-b1ae-7d400e25ad66" width="100%" height="240" alt="Sakura"/> |
 
-### Dynamic Preset (Cinder)
+### Dynamic Backgrounds
 
 It supports video backgrounds.
 
@@ -167,7 +167,7 @@ bash ./scripts/install --yes
 
 The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, writes the SDDM theme selection, and keeps the current session alive.
 
-During setup, it prints the exact plan, asks for confirmation and sudo, installs end to end, and logs the run.
+During setup, it prints the exact plan, asks for confirmation and `sudo`, installs end to end, and logs the run.
 
 If you use another distro, have a look at the generic [package contract](/scripts/data/deps.generic) and map it through your package manager. The same install can be done manually by following the same steps of:
 
@@ -180,19 +180,19 @@ It runs in this order.
 
 1. finds the Thyx repo from the script path or current directory
 2. detects the distro
-3. selects the matching package manifest from [`scripts/data/deps.map`](./scripts/data/deps.map)
+3. selects the matching package manifest from [dependency map](./scripts/data/deps.map)
 4. installs missing runtime packages from the selected manifest
 5. verifies required shell commands, the SDDM greeter, runtime packages, and `fc-cache` when bundled fonts exist
 6. prints the install plan
-7. asks for confirmation and sudo
+7. asks for confirmation and `sudo`
 8. removes the previous fixed stage path at `/usr/share/sddm/themes/.thyx.stage` if exists
 9. removes the previous fixed rollback path at `/usr/share/sddm/themes/.thyx.previous` if exists
 10. creates a fresh stage directory at `/usr/share/sddm/themes/.thyx.stage`
-11. copies the repo into the stage directory with `rsync --delete`
-12. strips dev-only files from the staged install:
+11. copies the repo into the stage directory
+12. removes dev artifacts from the staged install:
     - `.git/`
     - `.github/`
-    - `fonts/` # installed system wide
+    - `fonts/` ---> installed system wide
     - `.qmllint.ini`
     - ...
 
@@ -211,13 +211,13 @@ It runs in this order.
 25. prints a safe greeter test command
 26. logs everything to `~/.cache/thyx/thyx-install-*.log`
 
-After installation, the theme is at `/usr/share/sddm/themes/thyx`. This is where SDDM loads it from.
+After installation, the theme is at `/usr/share/sddm/themes/thyx`. This is where SDDM loads it from, and where you can configure/theme it.
 
 </details>
 
 ## Uninstallation
 
-Thyx comes off as clean as if… **it never got in.**
+It comes off as clean as if… **it never got in.**
 
 Ships with a first-class [uninstall](/scripts/uninstall) script so you don’t brick your login screen or get left hanging.
 
@@ -262,7 +262,7 @@ It runs in this order.
 
 </details>
 
-When you’re ready to apply changes, restart SDDM from a TTY:
+When you’re ready to apply changes, restart SDDM:
 
 ```bash
 sudo systemctl restart sddm
@@ -278,12 +278,12 @@ Or reboot.
 You can safely test edits using the preview command so you don’t get locked out and have to [recover](./docs/guide.md#recovery-protocol) via TTY.
 
 ```bash
-./scripts/preview
+bash ./scripts/preview
 ```
 
 Runs the SDDM greeter in test mode. Your session is untouched.
 
-Close the window when done (your compositor’s normal close shortcut, for example `Alt+Q` on Hyprland).
+Close the window when done (your compositor’s normal close shortcut, for example `Super+Q` on Hyprland).
 
 ## Configuration guide
 
@@ -300,7 +300,7 @@ cp presets/malachite.conf theme.conf
 Preview it
 
 ```bash
-./scripts/preview
+bash ./scripts/preview
 ```
 
 When satisfied, restart SDDM
@@ -318,13 +318,13 @@ You can create custom presets by duplicating an existing preset and modifying it
 ```bash
 cp presets/gilded.conf presets/my-custom.conf
 cp presets/my-custom.conf theme.conf
-./scripts/preview
+bash ./scripts/preview
 ```
 
 Edit freely, keep as many presets as you want, and swap them by copying into `theme.conf`.
 
 > [!TIP]
-> You can wire a shell function or keybinds to switch presets instantly. I personally use `Alt + R` to rotate the login screen and matching [desktop](https://github.com/rccyx/osyx) themes.
+> You can wire a shell function or keybinds to switch presets instantly. I personally use `Alt + R` to rotate the login screen with matching [desktop](https://github.com/rccyx/osyx) themes.
 
 ## Fonts
 
@@ -362,11 +362,11 @@ sudo fc-cache -f -v
 
 ### Basic settings
 
-| Setting      | Description                                | Example                    |
-| ------------ | ------------------------------------------ | -------------------------- |
-| `Font`       | System font family                         | `"Plus Jakarta Sans"`      |
-| `FontSize`   | Base font size in points                   | `"12"`                     |
-| `Background` | Wallpaper or video path, relative to theme | `"backgrounds/gilded.jpg"` |
+| Setting      | Description                                    | Example                    |
+| ------------ | ---------------------------------------------- | -------------------------- |
+| `Font`       | System font family                             | `"Plus Jakarta Sans"`      |
+| `FontSize`   | Base font size in points                       | `"12"`                     |
+| `Background` | Wallpaper or video path, relative to repo root | `"backgrounds/gilded.jpg"` |
 
 ### Time and date display
 
@@ -374,6 +374,63 @@ sudo fc-cache -f -v
 | ------------ | ----------- | --------------------------------------------- |
 | `HourFormat` | Time format | `"HH:mm"` (24h), `"hh:mm AP"` (12h), `"long"` |
 | `DateFormat` | Date format | `"dddd d MMMM"` gives `Thursday 29 August`    |
+
+#### Date format expressions
+
+| Expression | Output                                            |
+| ---------- | ------------------------------------------------- |
+| `d`        | Day number without a leading zero, `1` to `31`    |
+| `dd`       | Day number with a leading zero, `01` to `31`      |
+| `ddd`      | Localized abbreviated weekday name, such as `Thu` |
+| `dddd`     | Localized full weekday name, such as `Thursday`   |
+| `M`        | Month number without a leading zero, `1` to `12`  |
+| `MM`       | Month number with a leading zero, `01` to `12`    |
+| `MMM`      | Localized abbreviated month name, such as `Aug`   |
+| `MMMM`     | Localized full month name, such as `August`       |
+| `yy`       | Two-digit year, `00` to `99`                      |
+| `yyyy`     | Four-digit year                                   |
+
+**Examples:**
+
+| Value           | Example result     |
+| --------------- | ------------------ |
+| `"dddd d MMMM"` | `Thursday 16 July` |
+| `"ddd, MMM d"`  | `Thu, Jul 16`      |
+| `"dd.MM.yyyy"`  | `16.07.2026`       |
+| `"yyyy-MM-dd"`  | `2026-07-16`       |
+
+#### Time format expressions
+
+| Expression  | Output                                                                         |
+| ----------- | ------------------------------------------------------------------------------ |
+| `h`         | Hour without a leading zero, `0` to `23`, or `1` to `12` when AM/PM is present |
+| `hh`        | Hour with a leading zero, `00` to `23`, or `01` to `12` when AM/PM is present  |
+| `H`         | 24-hour hour without a leading zero, always `0` to `23`                        |
+| `HH`        | 24-hour hour with a leading zero, always `00` to `23`                          |
+| `m`         | Minute without a leading zero, `0` to `59`                                     |
+| `mm`        | Minute with a leading zero, `00` to `59`                                       |
+| `s`         | Second without a leading zero, `0` to `59`                                     |
+| `ss`        | Second with a leading zero, `00` to `59`                                       |
+| `z`         | Milliseconds without trailing zeroes, `0` to `999`                             |
+| `zzz`       | Milliseconds with three digits, `000` to `999`                                 |
+| `AP` or `A` | Localized uppercase AM/PM marker                                               |
+| `ap` or `a` | Localized lowercase am/pm marker                                               |
+| `t`         | Timezone abbreviation when available                                           |
+
+**Examples:**
+
+| Value            | Example result |
+| ---------------- | -------------- |
+| `"HH:mm"`        | `21:07`        |
+| `"H:mm:ss"`      | `21:07:04`     |
+| `"hh:mm AP"`     | `09:07 PM`     |
+| `"h:mm ap"`      | `9:07 pm`      |
+| `"HH:mm:ss.zzz"` | `21:07:04.042` |
+
+```ini
+DateFormat="'Today is' dddd d MMMM"
+HourFormat="HH:mm 'local time'"
+```
 
 ### Layout and form
 
@@ -388,6 +445,13 @@ sudo fc-cache -f -v
 | ------------------- | ------------------------------- | --------------------------------------- |
 | `AnimationDuration` | Hover or focus transition speed | `"80"`, `"120"`, `"300"`                |
 | `AnimationEasing`   | Animation curve                 | `"OutQuart"`, `"OutCubic"`, `"OutBack"` |
+
+**Breakdown:**
+
+- `AnimationDuration` is in milliseconds.
+- `OutCubic`: Cubic ease-out. Fast initial movement followed by a smooth deceleration.
+- `OutQuart`: Quartic ease-out. Stronger initial movement and softer settling than `OutCubic`. This is the default and fallback.
+- `OutBack`: Ease-out with an overshoot before settling on the final value.
 
 ### Colors
 
@@ -453,7 +517,11 @@ Video backgrounds use the same `Background` setting as image backgrounds.
 
 ## Fingerprint authentication
 
-THYX does not expose a fingerprint setting. Authentication is handled by the machine's SDDM PAM configuration. When fingerprint authentication is configured, submit the login form with the password empty to start the fingerprint authentication path. A normal password is submitted through the same login action.
+If your system uses PAM fingerprint authentication, it can start fingerprint login as soon as the screen appears.
+
+Tap the fingerprint sensor and press enter.
+
+If fingerprint isn't [configured](https://wiki.archlinux.org/title/Fprint) or fails, the greeter falls back to password login normally.
 
 ## Issues & Features
 
