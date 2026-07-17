@@ -85,7 +85,7 @@ For maximum compatibility and reliability, **H.264-encoded MP4** is strongly rec
 
 ## Guide
 
-Want a fast mental model of what this is, what SDDM is, and how recovery works? Read [this](./docs/guide.md).
+Want a fast mental model of what this is, will it work for you, what's SDDM, TTY recovery, etc? Read the [guide](./docs/guide.md).
 
 ## Installation
 
@@ -324,7 +324,7 @@ bash ./scripts/preview
 Edit freely, keep as many presets as you want, and swap them by copying into `theme.conf`.
 
 > [!TIP]
-> You can wire a shell function or keybinds to switch presets instantly. I personally use `Alt + R` to rotate the login screen with matching [desktop](https://github.com/rccyx/osyx) themes.
+> You can wire a shell function or keybinds to switch presets instantly. I personally use `Alt + R` to rotate the login with matching [desktop](https://github.com/rccyx/osyx) themes.
 
 ## Fonts
 
@@ -392,12 +392,12 @@ sudo fc-cache -f -v
 
 **Examples:**
 
-| Value           | Example result     |
-| --------------- | ------------------ |
-| `"dddd d MMMM"` | `Thursday 16 July` |
-| `"ddd, MMM d"`  | `Thu, Jul 16`      |
-| `"dd.MM.yyyy"`  | `16.07.2026`       |
-| `"yyyy-MM-dd"`  | `2026-07-16`       |
+| Value           | Result              |
+| --------------- | ------------------- |
+| `"dddd d MMMM"` | `Thursday 23 April` |
+| `"ddd, MMM d"`  | `Thu, Jul 16`       |
+| `"dd.MM.yyyy"`  | `10.01.2025`        |
+| `"yyyy-MM-dd"`  | `2026-02-18`        |
 
 #### Time format expressions
 
@@ -419,13 +419,15 @@ sudo fc-cache -f -v
 
 **Examples:**
 
-| Value            | Example result |
+| Value            | Result         |
 | ---------------- | -------------- |
 | `"HH:mm"`        | `21:07`        |
 | `"H:mm:ss"`      | `21:07:04`     |
 | `"hh:mm AP"`     | `09:07 PM`     |
 | `"h:mm ap"`      | `9:07 pm`      |
 | `"HH:mm:ss.zzz"` | `21:07:04.042` |
+
+**Meta:**
 
 ```ini
 DateFormat="'Today is' dddd d MMMM"
@@ -446,11 +448,11 @@ HourFormat="HH:mm 'local time'"
 | `AnimationDuration` | Hover or focus transition speed | `"80"`, `"120"`, `"300"`                |
 | `AnimationEasing`   | Animation curve                 | `"OutQuart"`, `"OutCubic"`, `"OutBack"` |
 
-**Breakdown:**
+**Explained:**
 
 - `AnimationDuration` is in milliseconds.
 - `OutCubic`: Cubic ease-out. Fast initial movement followed by a smooth deceleration.
-- `OutQuart`: Quartic ease-out. Stronger initial movement and softer settling than `OutCubic`. This is the default and fallback.
+- `OutQuart`: Quartic ease-out. Stronger initial movement and softer settling than `OutCubic`.
 - `OutBack`: Ease-out with an overshoot before settling on the final value.
 
 ### Colors
@@ -519,7 +521,7 @@ Video backgrounds use the same `Background` setting as image backgrounds.
 
 If your system uses PAM fingerprint authentication, it can start fingerprint login as soon as the screen appears.
 
-Tap the fingerprint sensor and press enter.
+Just tap the fingerprint sensor and press enter.
 
 If fingerprint isn't [configured](https://wiki.archlinux.org/title/Fprint) or fails, the greeter falls back to password login normally.
 

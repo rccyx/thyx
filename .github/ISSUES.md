@@ -4,11 +4,15 @@ Have you read the [Guide?](https://www.google.com/search?q=/docs/guide.md)
 
 Is it an actual bug? As in, a bug regarding what this greeter system is supposed to do, but doesn't? Maybe one of the theme options doesn't actually work.
 
-Maybe install/uninstall blows up? Although this goes through extensive testing in CI for the supported distros, so if it works in a reproducible environment in VM runners, it's most likely not the real issue, and the real one is a local state mutation/environmental edge case rather than broken source code.
+Maybe install/uninstall blows up?
 
-Source code bugs are bugs in QML, transitions don't work or something. Things like this.
+Although this goes through extensive testing in CI for the supported distros, so if it works in a reproducible environment in VM runners, it's most likely not the real issue, and the real one is a local state mutation/environmental edge case rather than broken source code.
+
+Source code bugs are bugs in logic, transitions don't work maybe, or installation is faulty. Things like that.
 
 Or is it visual changes like users dropdown menu, hide/show password toggles, another preset etc? If that, the [LICENSE](/LICENSE) allows forking.
+
+## Debugging
 
 So did the installer/uninstaller fail? Any logs? What does `~/.cache/thyx/*.log` say?
 
