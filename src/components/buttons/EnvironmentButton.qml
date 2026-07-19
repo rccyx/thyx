@@ -83,6 +83,11 @@ Rectangle {
             x: -environmentMenu.width / 2 + environmentDisplayText.width / 2
             padding: 10
 
+            onOpened: {
+                if (environmentPicker.currentIndex >= 0)
+                    menuContent.positionViewAtIndex(environmentPicker.currentIndex, ListView.Contain);
+            }
+
             background: Rectangle {
                 radius: 12
                 color: config.DropdownBackgroundColor
@@ -93,14 +98,14 @@ Rectangle {
                 id: menuContent
                 implicitHeight: contentHeight + 20
                 clip: true
-                model: environmentMenu.visible ? sessionModel : null
+                model: sessionModel
                 currentIndex: environmentPicker.currentIndex
 
                 delegate: Rectangle {
                     x: 10
                     width: menuContent.width - 20
                     height: delegateText.implicitHeight + 12
-                    color: menuContent.currentIndex === index ? config.DropdownSelectedBackgroundColor : "transparent"
+                    color: index === environmentPicker.currentIndex ? config.DropdownSelectedBackgroundColor : "transparent"
                     radius: 4
 
                     Text {
