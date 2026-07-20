@@ -6,11 +6,11 @@ Text {
 
     property var rootItem: null
     property var config: ({})
-    readonly property var cfg: config 
+    readonly property var cfg: config
     readonly property int basePt: (rootItem && rootItem.font && rootItem.font.pointSize) ? rootItem.font.pointSize : 13
     readonly property string baseFamily: (rootItem && rootItem.font && rootItem.font.family) ? rootItem.font.family : (cfg.Font && cfg.Font !== "" ? cfg.Font : dateDisplay.font.family)
 
-    color: cfg.DateTextColor 
+    color: cfg.DateTextColor
 
     font {
         pointSize: basePt * 2
