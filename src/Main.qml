@@ -77,7 +77,7 @@ Pane {
             anchors.bottom: parent.bottom
             y: parent.height * 0.003
 
-            width: parent.width / 2.5
+            width: parent.width * UiTokens.form_width_ratio
 
             x: {
                 if (root.formPos === "left")
@@ -93,7 +93,7 @@ Pane {
             }
 
             Item {
-                Layout.preferredHeight: root.font.pointSize * 1
+                Layout.preferredHeight: root.font.pointSize
             }
 
             Column {
@@ -125,7 +125,7 @@ Pane {
             SystemButtonsLayout {}
 
             Item {
-                Layout.preferredHeight: root.font.pointSize * 0.5
+                Layout.preferredHeight: root.font.pointSize * UiTokens.field_width_ratio
             }
 
             EnvironmentButton {
