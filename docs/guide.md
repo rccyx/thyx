@@ -1,6 +1,6 @@
 # Guide
 
-This guide covers the Linux login stack. It shows you exactly what this repo does, why the files go where they go, how SDDM picks a theme, how to preview it, uninstall it, and fix your system if your login screen breaks.
+This guide covers the Linux login stack. It shows you exactly what this repo does, why the files go where they go, what's SDDM and how it picks a theme, how to preview it, uninstall it, and fix your system if your login screen breaks.
 
 ## The Linux login stack
 
@@ -21,7 +21,7 @@ Here are the common display managers you'll run into:
 | `greetd`        | Minimal login daemon that works with custom greeters            |
 | `xdm`           | Legacy display manager for X11                                  |
 
-Environments like GNOME, KDE Plasma, LXQt, XFCE, Hyprland, Sway, and i3 are the sessions that launch after you log in. The display manager is just the gatekeeper that gets you into them:
+Environments like GNOME, KDE Plasma, LXQt, XFCE, Hyprland, Sway, and i3 are the sessions that launch after you log in. The display manager is just the program that gets you into them:
 
 ```text
 boot
