@@ -15,7 +15,7 @@ Item {
     readonly property bool isVideo: ["avi", "mp4", "mov", "mkv", "m4v", "webm"].indexOf(backgroundExtension) !== -1
     readonly property bool hasImage: hasBackground && !isVideo
     readonly property bool hasVideo: hasBackground && isVideo
-    readonly property url backgroundUrl: hasBackground ? Qt.resolvedUrl("../../" + backgroundPath) : ""
+    readonly property url backgroundUrl: hasBackground ? Qt.resolvedUrl("../../../" + backgroundPath) : ""
 
     Rectangle {
         anchors.fill: parent

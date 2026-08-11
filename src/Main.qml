@@ -7,7 +7,7 @@ import "components/clock"
 import "components/inputs"
 import "components/buttons"
 import "layouts"
-import "effects"
+import "layouts/effects"
 import "ui"
 
 Pane {
