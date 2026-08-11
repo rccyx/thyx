@@ -1,12 +1,12 @@
 // qmllint disable unqualified
 
 import QtQuick 2.15
-import Qt5Compat.GraphicalEffects
+import "../../ui"
 
 Rectangle {
     id: authField
-    implicitHeight: root.font.pointSize * 4.5
-    implicitWidth: parent.width / 2
+    implicitHeight: root.font.pointSize * UiTokens.field_frame_height_em
+    implicitWidth: parent.width * UiTokens.field_width_ratio
     anchors.horizontalCenter: parent.horizontalCenter
     color: "transparent"
 
@@ -17,28 +17,16 @@ Rectangle {
     property bool initialFocus: false
     property Item nextDown
 
-    Rectangle {
+    UiFieldFrame {
         id: inputFrame
         anchors.centerIn: parent
         width: parent.width
-        height: root.font.pointSize * 3
-        radius: 24
-        color: config.InputFieldBackgroundColor
-
-        layer.enabled: true
-        layer.effect: DropShadow {
-            horizontalOffset: 0
-            verticalOffset: 2
-            radius: 8
-            samples: 16
-            color: Qt.rgba(0, 0, 0, 0.15)
-        }
+        basePointSize: root.font.pointSize
+        fillColor: config.InputFieldBackgroundColor
 
         TextInput {
             id: textInput
-            anchors.centerIn: parent
-            width: parent.width - 16
-            height: parent.height
+            anchors.fill: parent
             horizontalAlignment: TextInput.AlignHCenter
             verticalAlignment: TextInput.AlignVCenter
             z: 1
@@ -58,19 +46,14 @@ Rectangle {
             renderType: Text.QtRendering
             KeyNavigation.down: authField.nextDown
 
-            Rectangle {
-                anchors.fill: parent
-                color: "transparent"
+            Text {
+                anchors.centerIn: parent
+                text: authField.placeholderText
+                color: config.PlaceholderTextColor
+                font: textInput.font
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 visible: textInput.text === ""
-
-                Text {
-                    anchors.centerIn: parent
-                    text: authField.placeholderText
-                    color: config.PlaceholderTextColor
-                    font: textInput.font
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
             }
         }
     }

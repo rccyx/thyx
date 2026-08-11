@@ -2,11 +2,12 @@
 
 import QtQuick 2.15
 import SddmComponents 2.0 as SDDM
+import "../../ui"
 
 Rectangle {
     id: authenticationControl
-    implicitHeight: root.font.pointSize * 9
-    implicitWidth: parent.width / 2
+    implicitHeight: root.font.pointSize * UiTokens.login_area_height_em
+    implicitWidth: parent.width * UiTokens.field_width_ratio
     anchors.horizontalCenter: parent.horizontalCenter
     color: "transparent"
 
@@ -58,70 +59,20 @@ Rectangle {
         Keys.onEnterPressed: authenticationControl.doLogin()
     }
 
-    Rectangle {
+    UiButton {
         id: authBtn
-        implicitHeight: root.font.pointSize * 3
         width: parent.width
         anchors.centerIn: parent
-        radius: 24
-        opacity: 1
-        color: baseColor
+        text: loginConstants.login
+        defaultColor: config.LoginButtonBackgroundColor
+        hoverColor: config.HoverLoginButtonBackgroundColor
+        pressedColor: Qt.darker(config.HoverLoginButtonBackgroundColor, 1.18)
+        textColor: config.LoginButtonTextColor
+        basePointSize: root.font.pointSize
+        fontFamily: root.font.family
+        motionDuration: root.animationDuration
+        motionEasing: root.animationEasing
 
-        readonly property color baseColor: config.LoginButtonBackgroundColor
-        readonly property color hoverColor: config.HoverLoginButtonBackgroundColor
-        readonly property color pressedColor: Qt.darker(hoverColor, 1.18)
-
-        MouseArea {
-            id: authClickArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: authenticationControl.doLogin()
-        }
-
-        Text {
-            id: authLabel
-            anchors.centerIn: parent
-            text: loginConstants.login
-            font {
-                pointSize: root.font.pointSize
-                family: root.font.family
-                weight: Font.Bold
-            }
-            color: config.LoginButtonTextColor
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-
-        states: [
-            State {
-                name: "buttonPressed"
-                when: authClickArea.pressed
-                PropertyChanges {
-                    authBtn.color: authBtn.pressedColor
-                }
-            },
-            State {
-                name: "buttonHovered"
-                when: authClickArea.containsMouse && !authClickArea.pressed
-                PropertyChanges {
-                    authBtn.color: authBtn.hoverColor
-                }
-            }
-        ]
-
-        transitions: [
-            Transition {
-                from: "*"
-                to: "*"
-
-                ColorAnimation {
-                    target: authBtn
-                    property: "color"
-                    duration: root.animationDuration
-                    easing.type: root.animationEasing
-                }
-            }
-        ]
+        onClicked: authenticationControl.doLogin()
     }
 }
