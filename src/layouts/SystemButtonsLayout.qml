@@ -4,16 +4,17 @@ import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import SddmComponents 2.0 as SDDM
 import "../components/buttons"
+import "../ui"
 
 RowLayout {
     id: systemButtons
     Layout.alignment: Qt.AlignHCenter
-    Layout.preferredHeight: root.height / 8
-    Layout.maximumHeight: root.height / 8
+    Layout.preferredHeight: root.height * UiTokens.system_buttons_height_ratio
+    Layout.maximumHeight: root.height * UiTokens.system_buttons_height_ratio
 
     Layout.leftMargin: 0
 
-    spacing: root.font.pointSize * 5
+    spacing: root.font.pointSize * UiTokens.system_buttons_gap_em
 
     SDDM.TextConstants {
         id: textConstants

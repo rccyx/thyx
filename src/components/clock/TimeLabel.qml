@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import "../../ui"
 
 Text {
     id: timeDisplay
@@ -11,12 +12,12 @@ Text {
     readonly property string baseFamily: (rootItem && rootItem.font && rootItem.font.family) ? rootItem.font.family : (cfg.Font && cfg.Font !== "" ? cfg.Font : timeDisplay.font.family)
 
     font {
-        pointSize: basePt * 9
+        pointSize: basePt * UiTokens.text_time
         weight: Font.Bold
         family: baseFamily
     }
 
-    color: cfg.TimeTextColor || "#ffffff"
+    color: cfg.TimeTextColor
     renderType: Text.QtRendering
     horizontalAlignment: Text.AlignHCenter
 

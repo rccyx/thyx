@@ -1,22 +1,23 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import "../../ui"
 
 Rectangle {
     id: temporalDisplay
     Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-    Layout.preferredHeight: (rootItem ? rootItem.height : (parent ? parent.height : 0)) / 4
+    Layout.preferredHeight: (rootItem ? rootItem.height : (parent ? parent.height : 0)) * UiTokens.clock_height_ratio
     color: "transparent"
 
     property var rootItem: null
     property var config: ({})
 
     Layout.leftMargin: 0
-    implicitWidth: parent ? parent.width / 2 : 0
+    implicitWidth: parent ? parent.width * UiTokens.field_width_ratio : 0
 
     Column {
         id: timeDisplayContainer
         anchors.centerIn: parent
-        spacing: 6
+        spacing: UiTokens.spacing_xs
 
         DateLabel {
             id: currentDate

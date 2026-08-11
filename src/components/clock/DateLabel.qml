@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import "../../ui"
 
 Text {
     id: dateDisplay
@@ -13,7 +14,7 @@ Text {
     color: cfg.DateTextColor
 
     font {
-        pointSize: basePt * 2
+        pointSize: basePt * UiTokens.text_date
         weight: Font.Medium
         family: baseFamily
     }
