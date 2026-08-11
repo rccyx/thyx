@@ -15,13 +15,13 @@ l:
 	find src -name "*.qml" -exec qmllint {} +
 
 @p:
-	bash ./scripts/preview
+	bash ./package/preview
 
 @i:
-	bash ./scripts/install
+	bash ./package/install
 
 @u:
-	bash ./scripts/uninstall
+	bash ./package/uninstall
 
 @shell:
-	shellcheck -x ./scripts/install ./scripts/uninstall
+	shellcheck -x ./package/install ./package/uninstall

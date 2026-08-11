@@ -156,20 +156,20 @@ Otherwise, the installer is atomic and idempotent and will auto setup everything
 Clone and run:
 
 ```bash
-bash ./scripts/install
+bash ./package/install
 ```
 
 For non interactive installs, pass `--yes`.
 
 ```bash
-bash ./scripts/install --yes
+bash ./package/install --yes
 ```
 
 The installer is local, explicit, and idempotent. It validates the theme tree, installs missing runtime packages, checks required commands, stages the install atomically, writes the SDDM theme selection, and keeps the current session alive.
 
 During setup, it prints the exact plan, asks for confirmation and `sudo`, installs end to end, and logs the run.
 
-If you use another distro, have a look at the generic [package contract](/scripts/data/deps.generic) and map it through your package manager. The same install can be done manually by following the same steps of:
+If you use another distro, have a look at the generic [package contract](/package/data/deps.generic) and map it through your package manager. The same install can be done manually by following the same steps of:
 
 <details>
 <summary><strong>What the installer does</strong></summary>
@@ -180,7 +180,7 @@ It runs in this order.
 
 1. finds the Thyx repo from the script path or current directory
 2. detects the distro
-3. selects the matching package manifest from [dependency map](./scripts/data/deps.map)
+3. selects the matching package manifest from [dependency map](./package/data/deps.map)
 4. installs missing runtime packages from the selected manifest
 5. verifies required shell commands, the SDDM greeter, runtime packages, and `fc-cache` when bundled fonts exist
 6. prints the install plan
@@ -219,20 +219,20 @@ After installation, the theme is at `/usr/share/sddm/themes/thyx`. This is where
 
 It comes off as clean as if… **it never got in.**
 
-Ships with a first-class [uninstall](/scripts/uninstall) script so you don’t brick your login screen or get left hanging.
+Ships with a first-class [uninstall](/package/uninstall) script so you don’t brick your login screen or get left hanging.
 
 It logs everything and prints a plan before proceeding.
 
 Run it from the repo.
 
 ```bash
-./scripts/uninstall
+./package/uninstall
 ```
 
 For non-interactive uninstall:
 
 ```bash
-./scripts/uninstall --yes
+./package/uninstall --yes
 ```
 
 <details>
@@ -278,7 +278,7 @@ Or reboot.
 You can safely test edits using the preview command so you don’t get locked out and have to [recover](./docs/guide.md#recovery-protocol) via TTY.
 
 ```bash
-bash ./scripts/preview
+bash ./package/preview
 ```
 
 Runs the SDDM greeter in test mode. Your session is untouched.
@@ -300,7 +300,7 @@ cp presets/malachite.conf theme.conf
 Preview it
 
 ```bash
-bash ./scripts/preview
+bash ./package/preview
 ```
 
 When satisfied, restart SDDM
@@ -318,7 +318,7 @@ You can create custom presets by duplicating an existing preset and modifying it
 ```bash
 cp presets/gilded.conf presets/my-custom.conf
 cp presets/my-custom.conf theme.conf
-bash ./scripts/preview
+bash ./package/preview
 ```
 
 Edit freely, keep as many presets as you want, and swap them by copying into `theme.conf`.

@@ -36,15 +36,15 @@ _thyx_validate_repo_tree() {
 
 _thyx_find_repo() {
   local script_dir="${1:?}"
-  local scripts_parent
+  local package_parent
   local cwd
 
-  scripts_parent="$(cd "${script_dir}/.." && pwd -P)"
+  package_parent="$(cd "${script_dir}/.." && pwd -P)"
   cwd="$(pwd -P)"
 
-  if [ -f "${scripts_parent}/metadata.desktop" ]; then
-    _thyx_validate_repo_tree "${scripts_parent}"
-    printf '%s\n' "${scripts_parent}"
+  if [ -f "${package_parent}/metadata.desktop" ]; then
+    _thyx_validate_repo_tree "${package_parent}"
+    printf '%s\n' "${package_parent}"
     return 0
   fi
 

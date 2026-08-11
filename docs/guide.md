@@ -149,7 +149,7 @@ ls -1 /usr/share/sddm/themes
 Run the installer from the root of the repository:
 
 ```bash
-./scripts/install
+./package/install
 ```
 
 It will ask you to confirm the plan it just laid out.
@@ -157,7 +157,7 @@ It will ask you to confirm the plan it just laid out.
 Run it without prompts (auto accept):
 
 ```bash
-./scripts/install --yes
+./package/install --yes
 ```
 
 The script automates the entire deployment:
@@ -229,13 +229,13 @@ The family name you write in your QML files has to match the exact family name t
 Run the uninstaller:
 
 ```bash
-./scripts/uninstall
+./package/uninstall
 ```
 
 Run a silent uninstall without prompts:
 
 ```bash
-./scripts/uninstall --yes
+./package/uninstall --yes
 ```
 
 The uninstaller restores `/etc/sddm.conf.thyx-back` if that backup file exists on your disk. Without a backup, it simply deletes the `Current=thyx` line from `/etc/sddm.conf`.
