@@ -1,1 +1,5 @@
 singleton UiTokens 1.0 tokens.qml
+UiButton 1.0 UiButton.qml
+UiFieldFrame 1.0 UiFieldFrame.qml
+UiIconButton 1.0 UiIconButton.qml
+UiPressable 1.0 UiPressable.qml
