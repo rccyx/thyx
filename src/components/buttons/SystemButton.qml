@@ -2,7 +2,7 @@
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import "../misc"
+import "../../ui"
 
 Rectangle {
     id: powerControl
@@ -13,9 +13,9 @@ Rectangle {
     property string text: ""
 
     implicitWidth: iconSize
-    implicitHeight: iconSize + labelText.implicitHeight + 8
+    implicitHeight: iconSize + labelText.implicitHeight + UiTokens.spacing_sm
 
-    readonly property int iconSize: root.font.pointSize * 4.5
+    readonly property int iconSize: root.font.pointSize * UiTokens.icon_button_size_em
 
     function activate() {
         if (powerControl.idx === 0)
@@ -28,13 +28,18 @@ Rectangle {
 
     Column {
         anchors.centerIn: parent
-        spacing: 8
+        spacing: UiTokens.spacing_sm
 
-        AnimatedIconButton {
+        UiIconButton {
             id: iconButton
             width: powerControl.iconSize
             height: powerControl.iconSize
             anchors.horizontalCenter: parent.horizontalCenter
+            defaultIconColor: config.SystemButtonsIconsColor
+            hoverIconColor: config.HoverSystemButtonsIconsColor
+            pressedIconColor: Qt.darker(config.HoverSystemButtonsIconsColor, 1.2)
+            motionDuration: root.animationDuration
+            motionEasing: root.animationEasing
 
             iconSource: {
                 switch (powerControl.idx) {
@@ -57,7 +62,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             text: powerControl.text || ""
             font {
-                pointSize: root.font.pointSize * 0.9
+                pointSize: root.font.pointSize * UiTokens.text_md
                 family: root.font.family
                 weight: Font.Normal
             }
@@ -76,14 +81,14 @@ Rectangle {
             states: [
                 State {
                     name: "labelHovered"
-                    when: iconButton.isHovered
+                    when: iconButton.hovered
                     PropertyChanges {
                         labelText.color: config.HoverSystemButtonsIconsColor
                     }
                 },
                 State {
                     name: "labelPressed"
-                    when: iconButton.isPressed
+                    when: iconButton.pressed
                     PropertyChanges {
                         labelText.color: Qt.darker(config.HoverSystemButtonsIconsColor, 1.2)
                     }

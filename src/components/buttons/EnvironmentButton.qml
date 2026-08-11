@@ -2,32 +2,32 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import "../../ui"
 
 Rectangle {
     id: environmentSelector
     Layout.alignment: Qt.AlignHCenter
-    Layout.preferredHeight: root.height / 15
-    Layout.maximumHeight: root.height / 15
+    Layout.preferredHeight: root.height * UiTokens.environment_height_ratio
+    Layout.maximumHeight: root.height * UiTokens.environment_height_ratio
     color: "transparent"
 
     Layout.leftMargin: 0
 
     implicitHeight: root.font.pointSize
-    implicitWidth: parent.width / 2
+    implicitWidth: parent.width * UiTokens.field_width_ratio
 
     property alias currentIndex: environmentPicker.currentIndex
 
     Rectangle {
         id: environmentContainer
         anchors.horizontalCenter: parent.horizontalCenter
-        height: root.font.pointSize * 3
+        height: root.font.pointSize * UiTokens.control_height_em
         width: parent.width
         color: "transparent"
 
-        MouseArea {
+        UiPressable {
             id: environmentTrigger
             anchors.fill: parent
-            hoverEnabled: true
             onClicked: environmentMenu.visible ? environmentMenu.close() : environmentMenu.open()
         }
 
@@ -37,7 +37,7 @@ Rectangle {
             text: "Environment (" + environmentPicker.currentText + ")"
             color: config.EnvironmentButtonTextColor
             font {
-                pointSize: root.font.pointSize * 0.9
+                pointSize: root.font.pointSize * UiTokens.text_md
                 family: root.font.family
             }
             verticalAlignment: Text.AlignVCenter
@@ -60,7 +60,7 @@ Rectangle {
             },
             State {
                 name: "sessionHovered"
-                when: environmentTrigger.containsMouse && !environmentTrigger.pressed
+                when: environmentTrigger.hovered
                 PropertyChanges {
                     environmentDisplayText.color: Qt.lighter(config.HoverEnvironmentButtonTextColor, 1.15)
                 }
@@ -81,7 +81,7 @@ Rectangle {
             width: environmentSelector.width
             y: environmentContainer.height - 1
             x: -environmentMenu.width / 2 + environmentDisplayText.width / 2
-            padding: 10
+            padding: UiTokens.spacing_md
 
             onOpened: {
                 if (environmentPicker.currentIndex >= 0)
@@ -89,7 +89,7 @@ Rectangle {
             }
 
             background: Rectangle {
-                radius: 12
+                radius: UiTokens.radius_md
                 color: config.DropdownBackgroundColor
                 layer.enabled: true
             }
@@ -102,18 +102,18 @@ Rectangle {
                 currentIndex: environmentPicker.currentIndex
 
                 delegate: Rectangle {
-                    x: 10
-                    width: menuContent.width - 20
-                    height: delegateText.implicitHeight + 12
+                    x: UiTokens.spacing_md
+                    width: menuContent.width - UiTokens.spacing_md * 2
+                    height: delegateText.implicitHeight + UiTokens.spacing_md
                     color: index === environmentPicker.currentIndex ? config.DropdownSelectedBackgroundColor : "transparent"
-                    radius: 4
+                    radius: UiTokens.radius_sm
 
                     Text {
                         id: delegateText
                         anchors.centerIn: parent
                         text: name
                         font {
-                            pointSize: root.font.pointSize * 0.8
+                            pointSize: root.font.pointSize * UiTokens.text_sm
                             family: root.font.family
                             weight: Font.Normal
                         }
@@ -122,7 +122,7 @@ Rectangle {
                         horizontalAlignment: Text.AlignHCenter
                     }
 
-                    MouseArea {
+                    UiPressable {
                         anchors.fill: parent
                         onClicked: {
                             environmentPicker.currentIndex = index;
